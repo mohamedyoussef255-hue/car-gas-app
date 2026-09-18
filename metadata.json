@@ -1,0 +1,6 @@
+{
+  "name": "منظومة كارجاس NGV الموحدة | رصد المركبات ودراسة الجدوى ومبادرة التحويل",
+  "description": "المنصة الموحدة الشاملة لكارجاس NGV: رصد وتصنيف السيارات بالكاميرا، دراسة الجدوى الاقتصادية والهندسية لمحطات الغاز، حاسبة الوفر والتقسيط للأساطيل، والدليل الفني",
+  "requestFramePermissions": ["camera", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

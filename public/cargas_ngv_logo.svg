@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <!-- Flame linear gradients -->
+    <linearGradient id="flameGold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fff885" />
+      <stop offset="40%" stop-color="#ffcc00" />
+      <stop offset="100%" stop-color="#e69500" />
+    </linearGradient>
+    <linearGradient id="leafGreen" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#00a642" />
+      <stop offset="100%" stop-color="#006b2b" />
+    </linearGradient>
+    <!-- Drop shadow for NGV text -->
+    <filter id="textGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="1.5" flood-color="#003d16" flood-opacity="0.9" />
+    </filter>
+  </defs>
+
+  <g transform="translate(0, 5)">
+    <!-- Main Green Lotus / Leaf Silhouette -->
+    <!-- Pointy top, smooth curved contours, winged side lobes, and tapered rounded bottom -->
+    <path d="M 200,30 
+             C 215,65 245,100 280,125 
+             C 320,150 365,160 375,190 
+             C 380,205 370,225 345,240 
+             C 310,260 260,268 200,268 
+             C 140,268 90,260 55,240 
+             C 30,225 20,205 25,190 
+             C 35,160 80,150 120,125 
+             C 155,100 185,65 200,30 Z" 
+          fill="url(#leafGreen)" 
+          stroke="#005220" 
+          stroke-width="3" />
+
+    <!-- Leaf side indent detail to accentuate lotus lobes -->
+    <path d="M 120,125 C 135,165 145,200 135,230" fill="none" stroke="#005924" stroke-width="3" opacity="0.3" />
+    <path d="M 280,125 C 265,165 255,200 265,230" fill="none" stroke="#005924" stroke-width="3" opacity="0.3" />
+
+    <!-- Center Gas Flame (Vibrant Golden Flame inside the leaf) -->
+    <!-- Left flame curve -->
+    <path d="M 200,75 
+             C 210,105 220,130 215,150 
+             C 210,165 198,175 192,190 
+             C 188,200 192,210 200,215 
+             C 192,212 182,205 180,195 
+             C 176,180 186,168 190,155 
+             C 196,135 190,105 200,75 Z" 
+          fill="url(#flameGold)" />
+
+    <!-- Center main flame tongue -->
+    <path d="M 205,85 
+             C 215,110 230,135 230,160 
+             C 230,185 215,205 200,212 
+             C 212,202 222,185 220,165 
+             C 218,145 208,125 205,85 Z" 
+          fill="#ffea00" />
+
+    <!-- Inner small core flame tongue -->
+    <path d="M 198,130 
+             C 203,145 208,160 205,175 
+             C 202,185 197,192 195,198 
+             C 193,192 195,182 197,175 
+             C 199,165 197,150 198,130 Z" 
+          fill="#ffffff" 
+          opacity="0.85" />
+
+    <!-- Arabic Text "كارجاس" inside the lower green leaf -->
+    <text x="200" y="240" 
+          text-anchor="middle" 
+          font-family="'Cairo', 'Segoe UI', Tahoma, sans-serif" 
+          font-size="44" 
+          font-weight="900" 
+          fill="#ffe600"
+          stroke="#00471b"
+          stroke-width="1.5"
+          letter-spacing="1">كارجاس</text>
+
+    <!-- NGV English Letters Below The Emblem -->
+    <!-- Yellow bold italic text with dark green outline and shadow -->
+    <g transform="translate(200, 355)" filter="url(#textGlow)">
+      <text x="0" y="0" 
+            text-anchor="middle" 
+            font-family="'Arial Black', 'Impact', 'Trebuchet MS', sans-serif" 
+            font-size="88" 
+            font-weight="900" 
+            font-style="italic" 
+            fill="#ffea00" 
+            stroke="#005a20" 
+            stroke-width="5" 
+            letter-spacing="4">NGV</text>
+    </g>
+  </g>
+</svg>
