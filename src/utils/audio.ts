@@ -15,7 +15,9 @@ function getAudioContext(): AudioContext | null {
   return audioCtx;
 }
 
-export function playVehicleBeep(type: 'private' | 'microbus' | 'taxi' | 'suzuki_van' | 'peugeot_station' | 'ai_detected'): void {
+import { VehicleType } from '../types';
+
+export function playVehicleBeep(type: VehicleType | 'ai_detected' | string): void {
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -29,8 +31,13 @@ export function playVehicleBeep(type: 'private' | 'microbus' | 'taxi' | 'suzuki_
     // Frequencies distinct by vehicle type
     const freqs: Record<string, number> = {
       private: 520,          // standard tone
-      microbus: 440,         // deeper bass tone
       taxi: 660,             // bright taxi ding
+      microbus: 440,         // deeper bass tone
+      van: 740,              // van tone
+      minibus: 490,          // minibus tone
+      pickup: 390,           // pickup bass
+      bus: 320,              // heavy bus tone
+      motorcycle: 820,       // motorcycle high pitch
       suzuki_van: 780,       // crisp tone
       peugeot_station: 380,  // low solid tone
       ai_detected: 880,      // high AI recognition chime

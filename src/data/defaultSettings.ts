@@ -1,4 +1,334 @@
-import { PlatformMasterSettings, FuelPricing, FeasibilityDefaults, CargasCenterItem, CylinderSpecItem, ConversionSystemItem } from '../types';
+import { 
+  PlatformMasterSettings, 
+  FuelPricing, 
+  FeasibilityDefaults, 
+  FeasibilityFieldDefinition,
+  CustomFuelItem,
+  CargasCenterItem, 
+  CylinderSpecItem, 
+  ConversionSystemItem, 
+  ContactNumberItem 
+} from '../types';
+
+export const DEFAULT_FEASIBILITY_FIELDS: FeasibilityFieldDefinition[] = [
+  // CapEx Parameters (التكاليف الاستثمارية)
+  {
+    id: 'f-capex-compressors',
+    key: 'capexCompressors',
+    category: 'capex',
+    label: 'وحدة الضواغط الرئيسية (Compressors)',
+    subLabel: 'محطة الضاغط الهيدروليكي / الميكانيكي عالي الضغط',
+    unit: 'ج.م',
+    defaultValue: 6500000,
+    value: 6500000,
+    isVisible: true,
+    description: 'تكلفة وحدة الضواغط الرئيسية شاملة لوحة التحكم الكهربائية والمبردات',
+  },
+  {
+    id: 'f-capex-cascades',
+    key: 'capexCascades',
+    category: 'capex',
+    label: 'اسطوانات التخزين والمخازن (Cascades)',
+    subLabel: 'بطاريات التخزين بسعات الضغط الثلاثي (250 بار)',
+    unit: 'ج.م',
+    defaultValue: 2400000,
+    value: 2400000,
+    isVisible: true,
+    description: 'خزانات التخزين التراكمي عالية الضغط لتلبية أوقات الذروة',
+  },
+  {
+    id: 'f-capex-dispensers',
+    key: 'capexDispensers',
+    category: 'capex',
+    label: 'موزعات الغاز السريعة (Dispensers)',
+    subLabel: 'نقاط التموين السريع بمعدل 50-70 كجم/دقيقة',
+    unit: 'ج.م',
+    defaultValue: 1800000,
+    value: 1800000,
+    isVisible: true,
+    description: 'موزعات التموين الإلكترونية المزدوجة بمسدسات NGV1 و NGV2',
+  },
+  {
+    id: 'f-capex-pipeline',
+    key: 'capexGasPipeline',
+    category: 'capex',
+    label: 'خط الربط وغرفة المحابس والقياس (Gas Pipeline & RMS)',
+    subLabel: 'توصيل الغاز من الشبكة القومية وتخفيض الضغط',
+    unit: 'ج.م',
+    defaultValue: 2200000,
+    value: 2200000,
+    isVisible: true,
+    description: 'خط التغذية وغرفة تخفيض الضغط والقياس والفلترة RMS',
+  },
+  {
+    id: 'f-capex-civil',
+    key: 'capexCivilAndCanopy',
+    category: 'capex',
+    label: 'الأعمال المدنية والمظلات والمحولات (Civil & Canopy)',
+    subLabel: 'الإنشاءات، المظلات المضادة للانفجار، وغرفة المحول',
+    unit: 'ج.م',
+    defaultValue: 3800000,
+    value: 3800000,
+    isVisible: true,
+    description: 'الصبات الخرسانية المقاومة للاهتزاز، مظلة التموين، والمحول الكهربائي',
+  },
+  {
+    id: 'f-capex-conversion',
+    key: 'capexConversionCenter',
+    category: 'capex',
+    label: 'مركز التحويل والفحص الملحق (Conversion Center)',
+    subLabel: 'حارات التحويل ورافعات السيارات وأجهزة المعايرة',
+    unit: 'ج.م',
+    defaultValue: 1500000,
+    value: 1500000,
+    isVisible: true,
+    description: 'تجهيزات مركز تحويل السيارات وصيانة الاسطوانات الملحق بالمحطة',
+  },
+  {
+    id: 'f-capex-safety',
+    key: 'capexPermitsAndSafety',
+    category: 'capex',
+    label: 'التراخيص ونظم الإطفاء والسلامة (HSE & Permits)',
+    subLabel: 'منظومة الإطفاء التلقائي، كواشف الغاز، وتراخيص الحماية المدنية',
+    unit: 'ج.م',
+    defaultValue: 900000,
+    value: 900000,
+    isVisible: true,
+    description: 'تراخيص الجهات الحكومية، شبكة الإطفاء الغازي، وأجهزة كشف التسريب',
+  },
+
+  // OpEx Parameters (مصاريف التشغيل السنوية)
+  {
+    id: 'f-opex-electricity',
+    key: 'opexElectricityAnnual',
+    category: 'opex',
+    label: 'تكلفة الكهرباء السنوية المقدرة (Electricity)',
+    subLabel: 'استهلاك محركات الضواغط والإنارة والتكييف',
+    unit: 'ج.م/سنة',
+    defaultValue: 950000,
+    value: 950000,
+    isVisible: true,
+    description: 'فاتورة الكهرباء السنوية لغرفة الضواغط ومرافق المحطة',
+  },
+  {
+    id: 'f-opex-maintenance',
+    key: 'opexMaintenanceAnnual',
+    category: 'opex',
+    label: 'الصيانة الدورية وقطع الغيار (Maintenance)',
+    subLabel: 'عقود الصيانة الوقائية للضواغط وتغيير الزيوت والفلاتر',
+    unit: 'ج.م/سنة',
+    defaultValue: 680000,
+    value: 680000,
+    isVisible: true,
+    description: 'قطع الغيار الاستهلاكية والصيانة الدورية للضواغط والموزعات',
+  },
+  {
+    id: 'f-opex-labor',
+    key: 'opexLaborAnnual',
+    category: 'opex',
+    label: 'أجور العمالة والتشغيل السنوية (Labor)',
+    subLabel: 'رواتب الفنيين ومسؤولي التموين والأمن والسلامة',
+    unit: 'ج.م/سنة',
+    defaultValue: 840000,
+    value: 840000,
+    isVisible: true,
+    description: 'أطقم التشغيل على الورديات ومسؤولي السلامة والصحة المهنية',
+  },
+  {
+    id: 'f-opex-insurance',
+    key: 'opexInsuranceAndAdmin',
+    category: 'opex',
+    label: 'التأمين والمصاريف الإدارية (Insurance & Admin)',
+    subLabel: 'وثائق التأمين الشامل ومصاريف التشغيل الإدارية',
+    unit: 'ج.م/سنة',
+    defaultValue: 420000,
+    value: 420000,
+    isVisible: true,
+    description: 'وثائق التأمين على الأصول ضد الحريق ومصاريف الاتصالات والبرمجيات',
+  },
+
+  // Margin Parameters (هوامش الربح والعوائد)
+  {
+    id: 'f-param-cng-margin',
+    key: 'cngProfitMarginPerM3',
+    category: 'margin',
+    label: 'هامش ربح الغاز الطبيعي (CNG Profit Margin)',
+    subLabel: 'هامش ربح المحطة لكل متر مكعب غاز مباع',
+    unit: 'ج.م/م³',
+    defaultValue: 1.50,
+    value: 1.50,
+    isVisible: true,
+    description: 'الهامش المالي المقرر من كارجاس لكل متر مكعب غاز مباع',
+  },
+  {
+    id: 'f-param-capture-rate',
+    key: 'captureRatePercent',
+    category: 'margin',
+    label: 'نسبة الاستقطاب من حركة المرور (Capture Rate)',
+    subLabel: 'نسبة المركبات المارة التي ستدخل المحطة للتموين',
+    unit: '%',
+    defaultValue: 5.5,
+    value: 5.5,
+    isVisible: true,
+    description: 'المعدل التقديري لتحول حركة السيارات المارة إلى مبيعات فعلية بالمحطة',
+  },
+  {
+    id: 'f-param-conversion-margin',
+    key: 'conversionNetMarginPerCar',
+    category: 'margin',
+    label: 'صافي ربح تحويل السيارة الواحدة (Conversion Net Margin)',
+    subLabel: 'متوسط ربح تحويل المركبة للعمل بالغاز الطبيعي',
+    unit: 'ج.م/سيارة',
+    defaultValue: 2200,
+    value: 2200,
+    isVisible: true,
+    description: 'صافي هامش الربح المحقق لمركز التحويل لكل سيارة يتم تحويلها',
+  },
+
+  // Operational Parameters (المحددات التشغيلية)
+  {
+    id: 'f-param-monthly-conversions',
+    key: 'monthlyConversionsCount',
+    category: 'operational',
+    label: 'عدد التحويلات الشهرية المستهدفة (Monthly Conversions)',
+    subLabel: 'معدل التحويل المتوقع بالمركز التابع للمحطة',
+    unit: 'سيارة/شهر',
+    defaultValue: 45,
+    value: 45,
+    isVisible: true,
+    description: 'الهدف الشهري لتحويل السيارات الملاكي والأجرة بمركز الخدمة',
+  },
+  {
+    id: 'f-param-discount-rate',
+    key: 'discountRatePercent',
+    category: 'operational',
+    label: 'معدل الخصم لحساب القيمة الحالية (Discount Rate)',
+    subLabel: 'سعر الفائدة المرجعي لحساب صافي القيمة الحالية NPV',
+    unit: '%',
+    defaultValue: 14.0,
+    value: 14.0,
+    isVisible: true,
+    description: 'المعدل المستخدم لحساب القيمة الحالية الصافية وفترة استرداد رأس المال',
+  },
+  {
+    id: 'f-param-operating-hours',
+    key: 'operatingHoursPerDay',
+    category: 'operational',
+    label: 'ساعات العمل اليومية للمحطة (Operating Hours)',
+    subLabel: 'متوسط ساعات تشغيل الموزعات يومياً',
+    unit: 'ساعة/يوم',
+    defaultValue: 18,
+    value: 18,
+    isVisible: true,
+    description: 'عدد ساعات استقبال المركبات والتموين الفعلي بالغاز يومياً',
+  },
+];
+
+export const DEFAULT_CUSTOM_FUELS: CustomFuelItem[] = [
+  {
+    id: 'fuel-cng',
+    key: 'cngPrice',
+    name: 'الغاز الطبيعي المضغوط (CNG)',
+    subName: 'غاز كارجاس المعتمد للسيارات والمركبات',
+    price: 7.00,
+    unit: 'ج.م / م³',
+    color: '#10b981',
+    isVisible: true,
+  },
+  {
+    id: 'fuel-gasoline80',
+    key: 'gasoline80Price',
+    name: 'بنزين 80 أوكتان',
+    subName: 'وقود بترولي اقتصادي للمركبات القديمة',
+    price: 13.75,
+    unit: 'ج.م / لتر',
+    color: '#f59e0b',
+    isVisible: true,
+  },
+  {
+    id: 'fuel-gasoline92',
+    key: 'gasoline92Price',
+    name: 'بنزين 92 أوكتان',
+    subName: 'وقود بترولي قياسي للملاكي',
+    price: 15.25,
+    unit: 'ج.م / لتر',
+    color: '#3b82f6',
+    isVisible: true,
+  },
+  {
+    id: 'fuel-gasoline95',
+    key: 'gasoline95Price',
+    name: 'بنزين 95 أوكتان',
+    subName: 'وقود بترولي فائق الأداء',
+    price: 17.00,
+    unit: 'ج.م / لتر',
+    color: '#8b5cf6',
+    isVisible: true,
+  },
+  {
+    id: 'fuel-diesel',
+    key: 'dieselPrice',
+    name: 'سولار / ديزل',
+    subName: 'وقود الشاحنات والميكروباص والنقل الثقيل',
+    price: 13.50,
+    unit: 'ج.م / لتر',
+    color: '#64748b',
+    isVisible: true,
+  },
+];
+
+export const DEFAULT_CONTACT_NUMBERS: ContactNumberItem[] = [
+  {
+    id: 'contact-hotline-main',
+    title: 'الخط الساخن الموحد (كارجاس NGV)',
+    number: '19544',
+    department: 'خدمة العملاء والشكاوى والاستفسارات',
+    type: 'hotline',
+    isPrimary: true,
+    description: 'الرقم المختصر الرسمي المعتمد لشركة كارجاس لخدمات الغاز وتموين وتحويل السيارات',
+    isActive: true,
+  },
+  {
+    id: 'contact-emergency-ops',
+    title: 'طوارئ الغاز وعمليات التشغيل والصيانة (24 ساعة)',
+    number: '129 / 19544',
+    department: 'إدارة العمليات والتشغيل وطوارئ الشبكة',
+    type: 'emergency',
+    isPrimary: false,
+    description: 'غرفة العمليات المركزية لمتابعة ضغوط الغاز والمحطات على مدار الساعة',
+    isActive: true,
+  },
+  {
+    id: 'contact-marketing-dev',
+    title: 'إدارة التسويق والدراسات الميدانية وتطوير المحطات',
+    number: '02-24185200',
+    department: 'إدارة التسويق وتطوير الأعمال',
+    type: 'landline',
+    isPrimary: false,
+    description: 'استقبال طلبات ملاك الأراضي والمعاينات الميدانية للمواقع الجديدة',
+    isActive: true,
+  },
+  {
+    id: 'contact-whatsapp-field',
+    title: 'واتساب خدمة العملاء والمعاينين الميدانيين',
+    number: '+201019544000',
+    department: 'المتابعة الميدانية وخدمة العملاء',
+    type: 'whatsapp',
+    isPrimary: false,
+    description: 'إرسال واستقبال إحداثيات المواقع وصور المعاينة الميدانية الفورية',
+    isActive: true,
+  },
+  {
+    id: 'contact-conversion-maint',
+    title: 'الدعم الفني ومراكز التحويل وصيانة الاسطوانات',
+    number: '02-25936400',
+    department: 'الإدارة الفنية ومراكز التحويل المعتمدة',
+    type: 'landline',
+    isPrimary: false,
+    description: 'المتابعة الدورية، فحص واختبار الاسطوانات بالماء المضغوط، والضمان المعتمد',
+    isActive: true,
+  },
+];
 
 export const DEFAULT_FUEL_PRICING: FuelPricing = {
   cngPrice: 7.00, // EGP per m³
@@ -27,6 +357,7 @@ export const DEFAULT_FEASIBILITY_SETTINGS: FeasibilityDefaults = {
   monthlyConversionsCount: 45,
   discountRatePercent: 14.0,
   operatingHoursPerDay: 18,
+  customFields: DEFAULT_FEASIBILITY_FIELDS,
 };
 
 export const DEFAULT_CARGAS_CENTERS: CargasCenterItem[] = [
@@ -196,14 +527,20 @@ export const DEFAULT_CONVERSION_SYSTEMS: ConversionSystemItem[] = [
 
 export const DEFAULT_PLATFORM_SETTINGS: PlatformMasterSettings = {
   pricing: DEFAULT_FUEL_PRICING,
+  customFuels: DEFAULT_CUSTOM_FUELS,
   feasibility: DEFAULT_FEASIBILITY_SETTINGS,
   centers: DEFAULT_CARGAS_CENTERS,
   cylinders: DEFAULT_CYLINDER_SPECS,
   systems: DEFAULT_CONVERSION_SYSTEMS,
+  contacts: DEFAULT_CONTACT_NUMBERS,
   general: {
     companyName: 'الشركة المصرية الدولية لتكنولوجيا الغاز (كارجاس - CARGAS)',
-    hotline: '19614',
+    hotline: '19544',
     defaultSurveyorName: 'م. أحمد الشناوي',
+    emergencyHotline: '129 / 19544',
+    marketingPhone: '02-24185200',
+    whatsappNumber: '+201019544000',
+    customerServicePhone: '19544',
   },
 };
 
@@ -214,13 +551,36 @@ export function loadPlatformSettings(): PlatformMasterSettings {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
+      // Ensure hotline is 19544 if legacy 19614 was saved
+      const savedGeneral = parsed.general || {};
+      if (savedGeneral.hotline === '19614') {
+        savedGeneral.hotline = '19544';
+      }
+
+      // Merge feasibility customFields
+      const savedFeas = parsed.feasibility || {};
+      const mergedFields = Array.isArray(savedFeas.customFields) && savedFeas.customFields.length > 0
+        ? savedFeas.customFields
+        : DEFAULT_FEASIBILITY_FIELDS;
+
+      // Merge custom fuels
+      const mergedFuels = Array.isArray(parsed.customFuels) && parsed.customFuels.length > 0
+        ? parsed.customFuels
+        : DEFAULT_CUSTOM_FUELS;
+
       // Merge with defaults in case of missing keys
       return {
         ...DEFAULT_PLATFORM_SETTINGS,
         ...parsed,
         pricing: { ...DEFAULT_PLATFORM_SETTINGS.pricing, ...(parsed.pricing || {}) },
-        feasibility: { ...DEFAULT_PLATFORM_SETTINGS.feasibility, ...(parsed.feasibility || {}) },
-        general: { ...DEFAULT_PLATFORM_SETTINGS.general, ...(parsed.general || {}) },
+        customFuels: mergedFuels,
+        feasibility: { 
+          ...DEFAULT_PLATFORM_SETTINGS.feasibility, 
+          ...savedFeas,
+          customFields: mergedFields 
+        },
+        general: { ...DEFAULT_PLATFORM_SETTINGS.general, ...savedGeneral, hotline: savedGeneral.hotline || '19544' },
+        contacts: Array.isArray(parsed.contacts) && parsed.contacts.length > 0 ? parsed.contacts : DEFAULT_CONTACT_NUMBERS,
         centers: Array.isArray(parsed.centers) && parsed.centers.length > 0 ? parsed.centers : DEFAULT_CARGAS_CENTERS,
         cylinders: Array.isArray(parsed.cylinders) && parsed.cylinders.length > 0 ? parsed.cylinders : DEFAULT_CYLINDER_SPECS,
         systems: Array.isArray(parsed.systems) && parsed.systems.length > 0 ? parsed.systems : DEFAULT_CONVERSION_SYSTEMS,

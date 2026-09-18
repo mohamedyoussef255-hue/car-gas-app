@@ -34,7 +34,8 @@ import {
   VehicleType, 
   VEHICLE_CONFIGS, 
   CompanyStationCensusItem, 
-  HistoricalPhotoItem 
+  HistoricalPhotoItem,
+  createDefaultVehicleCounts
 } from '../types';
 import { INITIAL_COMPANY_STATIONS_CENSUS, INITIAL_HISTORICAL_PHOTOS } from '../data/companyStationsCensus';
 
@@ -288,13 +289,14 @@ export const AdminHistoricalDataImporter: React.FC<AdminHistoricalDataImporterPr
           startTime: new Date().toISOString(),
           endTime: new Date().toISOString(),
           durationSeconds: 3600,
-          counts: {
+          counts: createDefaultVehicleCounts({
             microbus: microbus || 150,
             taxi: taxi || 80,
-            suzuki_van: van || 60,
+            van: van || 60,
             peugeot_station: peugeot || 25,
-            private: privateCar || 200
-          },
+            private: privateCar || 200,
+            suzuki_van: van || 60
+          }),
           detections: [],
           notes,
           autoGpsCaptured: true,
@@ -506,13 +508,14 @@ export const AdminHistoricalDataImporter: React.FC<AdminHistoricalDataImporterPr
       status: 'active',
       startTime: new Date().toISOString(),
       durationSeconds: 1800,
-      counts: {
+      counts: createDefaultVehicleCounts({
         microbus: 120,
         taxi: 75,
-        suzuki_van: 50,
+        van: 50,
         peugeot_station: 20,
-        private: 180
-      },
+        private: 180,
+        suzuki_van: 50
+      }),
       detections: [],
       notes: 'تم توليد هذا الموقع تلقائياً من مغذي إحداثيات الـ GPS المجمع بنظام GIS كارجاس',
       autoGpsCaptured: true,

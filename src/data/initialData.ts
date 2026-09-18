@@ -1,4 +1,4 @@
-import { CNGStation, MonitoringSession } from '../types';
+import { CNGStation, MonitoringSession, createDefaultVehicleCounts } from '../types';
 
 export const INITIAL_CNG_STATIONS: CNGStation[] = [
   {
@@ -125,8 +125,13 @@ export const INITIAL_SESSIONS: MonitoringSession[] = [
     durationSeconds: 11700,
     counts: {
       private: 214,
-      microbus: 182,
       taxi: 94,
+      microbus: 182,
+      van: 76,
+      minibus: 42,
+      pickup: 68,
+      bus: 24,
+      motorcycle: 55,
       suzuki_van: 76,
       peugeot_station: 38,
     },
@@ -179,13 +184,18 @@ export const INITIAL_SESSIONS: MonitoringSession[] = [
     startTime: '2026-09-16T14:00:00.000Z',
     endTime: '2026-09-16T17:00:00.000Z',
     durationSeconds: 10800,
-    counts: {
+    counts: createDefaultVehicleCounts({
       private: 490,
       microbus: 64,
       taxi: 82,
+      van: 28,
+      minibus: 15,
+      pickup: 35,
+      bus: 18,
+      motorcycle: 42,
       suzuki_van: 28,
       peugeot_station: 12,
-    },
+    }),
     detections: [],
     notes: 'نسبة سيارات الملاكي والتاكسي مرتفعة للغاية مع إقبال كبير على مبادرة إحلال السيارات المتقادمة للعمل بالغاز.',
   },
@@ -204,13 +214,18 @@ export const INITIAL_SESSIONS: MonitoringSession[] = [
     startTime: '2026-09-15T09:00:00.000Z',
     endTime: '2026-09-15T12:00:00.000Z',
     durationSeconds: 10800,
-    counts: {
+    counts: createDefaultVehicleCounts({
       private: 180,
       microbus: 145,
       taxi: 165,
+      van: 52,
+      minibus: 38,
+      pickup: 60,
+      bus: 25,
+      motorcycle: 70,
       suzuki_van: 52,
       peugeot_station: 34,
-    },
+    }),
     detections: [],
     notes: 'حركة التاكسي الأصفر والأسود والبيجو الستيشن وميكروباصات بحري تشكل 65% من إجمالي حركة المركبات.',
   },

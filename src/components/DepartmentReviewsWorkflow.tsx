@@ -2129,13 +2129,17 @@ export const DepartmentReviewsWorkflow: React.FC<DepartmentReviewsWorkflowProps>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
                     {allDepartmentAttachments.map(({ departmentKey, departmentName, attachment }) => {
-                      const deptDecision = reviews[departmentKey]?.decision;
-                      const decisionBadge = {
+                      const deptDecision = reviews[departmentKey]?.decision || 'conditional';
+                      const decisionBadgeMap: Record<DepartmentReviewDecision, { label: string; color: string }> = {
                         approved: { label: 'موافقة', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
                         conditional: { label: 'مشروط', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
                         deferred: { label: 'تأجيل', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-                        rejected: { label: 'رفض', color: 'bg-rose-500/20 text-rose-300 border-rose-500/30' }
-                      }[deptDecision || 'conditional'];
+                        rejected: { label: 'رفض', color: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
+                        pending: { label: 'قيد المراجعة', color: 'bg-slate-500/20 text-slate-300 border-slate-500/30' }
+                      };
+                      const decisionBadge = decisionBadgeMap[deptDecision] || decisionBadgeMap.conditional;
+                      const fileCat = attachment.category || attachment.type || 'other';
+                      const fileSize = attachment.sizeFormatted || `${(attachment.sizeBytes / 1024).toFixed(1)} KB`;
 
                       return (
                         <div
@@ -2144,7 +2148,7 @@ export const DepartmentReviewsWorkflow: React.FC<DepartmentReviewsWorkflowProps>
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0">
-                              {attachment.category === 'image' && attachment.dataUrl ? (
+                              {fileCat === 'image' && attachment.dataUrl ? (
                                 <img
                                   src={attachment.dataUrl}
                                   alt={attachment.name}
@@ -2152,11 +2156,11 @@ export const DepartmentReviewsWorkflow: React.FC<DepartmentReviewsWorkflowProps>
                                 />
                               ) : (
                                 <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0 text-slate-300">
-                                  {attachment.category === 'pdf' && <FileText className="w-4 h-4 text-rose-400" />}
-                                  {attachment.category === 'excel' && <FileSpreadsheet className="w-4 h-4 text-emerald-400" />}
-                                  {attachment.category === 'word' && <FileText className="w-4 h-4 text-blue-400" />}
-                                  {attachment.category === 'other' && <Paperclip className="w-4 h-4 text-slate-400" />}
-                                  {attachment.category === 'image' && <Eye className="w-4 h-4 text-cyan-400" />}
+                                  {fileCat === 'pdf' && <FileText className="w-4 h-4 text-rose-400" />}
+                                  {fileCat === 'excel' && <FileSpreadsheet className="w-4 h-4 text-emerald-400" />}
+                                  {fileCat === 'word' && <FileText className="w-4 h-4 text-blue-400" />}
+                                  {fileCat === 'other' && <Paperclip className="w-4 h-4 text-slate-400" />}
+                                  {fileCat === 'image' && <Eye className="w-4 h-4 text-cyan-400" />}
                                 </div>
                               )}
                               <div className="min-w-0">
@@ -2164,7 +2168,7 @@ export const DepartmentReviewsWorkflow: React.FC<DepartmentReviewsWorkflowProps>
                                   {attachment.name}
                                 </p>
                                 <span className="text-[10px] text-slate-400 block">
-                                  {attachment.sizeFormatted} • {attachment.uploadedAt}
+                                  {fileSize} • {attachment.uploadedAt}
                                 </span>
                               </div>
                             </div>

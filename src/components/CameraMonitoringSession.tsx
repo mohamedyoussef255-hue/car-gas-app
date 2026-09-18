@@ -73,13 +73,16 @@ export const CameraMonitoringSession: React.FC<CameraMonitoringSessionProps> = (
   const [isSyncingGps, setIsSyncingGps] = useState<boolean>(false);
   const [gpsSyncedNotice, setGpsSyncedNotice] = useState<string | null>(null);
 
-  // Auto-acquire / update GPS coordinates as soon as session starts
+  // Auto-acquire / update GPS coordinates and query reverse geocoding from satellite & internet
   const syncLiveGps = useCallback((silent = false) => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      if (!silent) setGpsSyncedNotice("نظام تحديد المواقع (GPS) غير مدعوم في هذا المتصفح.");
+      return;
+    }
     if (!silent) setIsSyncingGps(true);
     
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const newCoords = {
           lat: Number(pos.coords.latitude.toFixed(5)),
           lng: Number(pos.coords.longitude.toFixed(5)),
@@ -88,14 +91,52 @@ export const CameraMonitoringSession: React.FC<CameraMonitoringSessionProps> = (
         const alt = pos.coords.altitude ? Math.round(pos.coords.altitude) : undefined;
         setCurrentCoords(newCoords);
         setGpsAccuracy(accuracy);
+
+        let resolvedAddress = session?.resolvedAddress || '';
+        let district = session?.district || '';
+        let governorate = session?.governorate || 'القاهرة';
+        let roadType = session?.roadType || 'طريق رئيسي';
+        let locationName = session?.locationName || 'موقع الرصد الميداني';
+        let onlinePoiData = session?.onlinePoiData || '';
+
+        try {
+          // Query backend reverse geocoding with Egyptian geography fallback
+          const geoRes = await fetch('/api/reverse-geocode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat: newCoords.lat, lng: newCoords.lng }),
+          });
+
+          if (geoRes.ok) {
+            const geoData = await geoRes.json();
+            if (geoData.success) {
+              governorate = geoData.governorate || governorate;
+              district = geoData.district || district;
+              roadType = geoData.roadType || roadType;
+              locationName = geoData.road || geoData.district || locationName;
+              resolvedAddress = geoData.fullAddress || resolvedAddress;
+              onlinePoiData = geoData.onlinePoiData || '';
+            }
+          }
+        } catch (geoErr) {
+          console.warn("Reverse geocode fetch failed:", geoErr);
+        }
+
         setIsSyncingGps(false);
-        setGpsSyncedNotice(`تم رفع وتحديث الإحداثيات والزمن أوتوماتيكياً: ${newCoords.lat}° N, ${newCoords.lng}° E (دقة ±${accuracy}م)`);
-        setTimeout(() => setGpsSyncedNotice(null), 4500);
+        setGpsSyncedNotice(`📍 تم تحديد الموقع تلقائياً: ${resolvedAddress || locationName} (${governorate} - ${district})`);
+        setTimeout(() => setGpsSyncedNotice(null), 6000);
 
         if (session) {
           onUpdateSession({
             ...session,
             coordinates: newCoords,
+            locationName,
+            governorate,
+            district,
+            roadType,
+            resolvedAddress,
+            onlinePoiData,
+            autoLocationResolved: true,
             gpsAccuracyMeters: accuracy,
             elevationMeters: alt ?? session.elevationMeters,
             autoGpsCaptured: true,
@@ -106,8 +147,12 @@ export const CameraMonitoringSession: React.FC<CameraMonitoringSessionProps> = (
       (err) => {
         console.warn("GPS sync error in session:", err);
         setIsSyncingGps(false);
+        if (!silent) {
+          setGpsSyncedNotice("تعذر جلب إحداثيات GPS تلقائياً. تأكد من إعطاء إذن الموقع للمتصفح.");
+          setTimeout(() => setGpsSyncedNotice(null), 4000);
+        }
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 12000 }
     );
   }, [session, onUpdateSession]);
 
@@ -314,7 +359,7 @@ export const CameraMonitoringSession: React.FC<CameraMonitoringSessionProps> = (
             data.description || `رصد ذكي بالكاميرا: ${VEHICLE_TYPES[detectedType].label}`
           );
 
-          setTimeout(() => setLastAiDetection(null), 3500);
+          setTimeout(() => setLastAiDetection(null), 3000);
         }
       }
     } catch (err) {
@@ -324,12 +369,12 @@ export const CameraMonitoringSession: React.FC<CameraMonitoringSessionProps> = (
     }
   }, [session, isAnalyzingFrame, isAiScanning, isSoundEnabled, handleAddVehicle]);
 
-  // AI Scanning Interval
+  // AI Scanning Interval (Fast 1800ms for continuous traffic monitoring)
   useEffect(() => {
     if (!session || session.status !== 'active' || !isAiScanning) return;
     const interval = setInterval(() => {
       captureAndClassifyFrame();
-    }, 3800);
+    }, 1800);
 
     return () => clearInterval(interval);
   }, [session, isAiScanning, captureAndClassifyFrame]);
@@ -341,10 +386,13 @@ export const CameraMonitoringSession: React.FC<CameraMonitoringSessionProps> = (
       if (['input', 'textarea'].includes((e.target as HTMLElement)?.tagName?.toLowerCase())) return;
 
       if (e.key === '1') handleAddVehicle('private');
-      if (e.key === '2') handleAddVehicle('microbus');
-      if (e.key === '3') handleAddVehicle('taxi');
-      if (e.key === '4') handleAddVehicle('suzuki_van');
-      if (e.key === '5') handleAddVehicle('peugeot_station');
+      if (e.key === '2') handleAddVehicle('taxi');
+      if (e.key === '3') handleAddVehicle('microbus');
+      if (e.key === '4') handleAddVehicle('van');
+      if (e.key === '5') handleAddVehicle('minibus');
+      if (e.key === '6') handleAddVehicle('pickup');
+      if (e.key === '7') handleAddVehicle('bus');
+      if (e.key === '8') handleAddVehicle('motorcycle');
       if (e.key === 'z' && (e.ctrlKey || e.metaKey)) handleUndoLast();
     };
 
@@ -526,6 +574,58 @@ export const CameraMonitoringSession: React.FC<CameraMonitoringSessionProps> = (
         </div>
       </div>
 
+      {/* Automated Geocoding & Internet POI Banner */}
+      <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs shadow-lg">
+        <div className="flex items-start gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+            <MapPin className="w-4 h-4" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-bold text-white text-sm">
+                {session.resolvedAddress || session.locationName || 'الموقع الجغرافي المحدد'}
+              </span>
+              <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-medium text-[11px] border border-emerald-500/30">
+                {session.governorate} • {session.district || 'المنطقة المحيطة'}
+              </span>
+              {session.roadType && (
+                <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[11px] border border-slate-700">
+                  {session.roadType}
+                </span>
+              )}
+              {session.autoLocationResolved && (
+                <span className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-300 text-[10px] border border-sky-500/30 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-sky-400" />
+                  موقع مؤكد أوتوماتيكياً
+                </span>
+              )}
+            </div>
+            {session.onlinePoiData ? (
+              <p className="text-[11px] text-slate-300 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span><strong>بيانات الموقع عبر شبكات الإنترنت:</strong> {session.onlinePoiData}</span>
+              </p>
+            ) : (
+              <p className="text-[11px] text-slate-400">
+                الإحداثيات الحالية: {currentCoords.lat}° N, {currentCoords.lng}° E (دقة ±{gpsAccuracy || 6}م)
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+          <button
+            type="button"
+            onClick={() => syncLiveGps(false)}
+            disabled={isSyncingGps}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncingGps ? 'animate-spin' : ''}`} />
+            <span>{isSyncingGps ? 'جاري التحديث...' : 'تحديث الموقع التلقائي من الإنترنت'}</span>
+          </button>
+        </div>
+      </div>
+
       {/* Main Grid: Camera Stream & Quick Tally Controls */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         
@@ -671,7 +771,32 @@ export const CameraMonitoringSession: React.FC<CameraMonitoringSessionProps> = (
                 }`}
               >
                 <Sparkles className={`w-3.5 h-3.5 ${isAiScanning ? 'text-emerald-300 animate-spin' : ''}`} />
-                <span>الرصد الذكي التلقائي</span>
+                <span>الرصد الذكي: {isAiScanning ? 'نشط تلقائياً' : 'متوقف'}</span>
+              </button>
+
+              {/* Instant Vehicle Passing Test Trigger */}
+              <button
+                type="button"
+                id="btn-simulate-ai-detection"
+                onClick={() => {
+                  const types: VehicleType[] = ['private', 'taxi', 'microbus', 'van', 'minibus', 'pickup', 'bus', 'motorcycle'];
+                  const randomType = types[Math.floor(Math.random() * types.length)];
+                  const cfg = VEHICLE_TYPES[randomType];
+                  setLastAiDetection({
+                    type: randomType,
+                    confidence: 97,
+                    arabicName: cfg.label,
+                    description: `رصد ذكي بالكاميرا: ${cfg.label} - تتبع الحركة في المسار`,
+                  });
+                  if (isSoundEnabled) playVehicleBeep('ai_detected');
+                  handleAddVehicle(randomType, 'camera_ai', 0.97, `رصد ذكي بالكاميرا: ${cfg.label}`);
+                  setTimeout(() => setLastAiDetection(null), 3000);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold backdrop-blur-md bg-amber-500/20 text-amber-300 border border-amber-400/50 hover:bg-amber-500/30 transition-all cursor-pointer"
+                title="تجربة فورية لخوارزمية الرصد التلقائي وزيادة العداد أمام الكاميرا"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>تجربة رصد سيارة فوري</span>
               </button>
             </div>
           </div>
@@ -733,12 +858,12 @@ export const CameraMonitoringSession: React.FC<CameraMonitoringSessionProps> = (
             </div>
 
             <p className="text-xs text-slate-400 mb-3">
-              اضغط على أي نوع لتسجيل عبور السيارة فوراً أمام الكاميرا (تدعم النقر السريع باللمس واختصارات لوحة المفاتيح 1 إلى 5):
+              اضغط على أي نوع لتسجيل عبور المركبة فوراً أمام الكاميرا (تدعم النقر السريع باللمس واختصارات لوحة المفاتيح 1 إلى 8):
             </p>
 
-            {/* The 5 Required Vehicle Classification Categories */}
-            <div className="grid grid-cols-1 gap-2.5 flex-1">
-              {(Object.keys(VEHICLE_TYPES) as VehicleType[]).map((typeKey) => {
+            {/* The 8 Required Vehicle Classification Categories */}
+            <div className="grid grid-cols-1 gap-2 flex-1 max-h-[620px] overflow-y-auto pr-1 no-scrollbar">
+              {(['private', 'taxi', 'microbus', 'van', 'minibus', 'pickup', 'bus', 'motorcycle'] as VehicleType[]).map((typeKey) => {
                 const config = VEHICLE_TYPES[typeKey];
                 const count = session.counts[typeKey] || 0;
                 const isJustAdded = lastAddedType === typeKey;
@@ -748,7 +873,7 @@ export const CameraMonitoringSession: React.FC<CameraMonitoringSessionProps> = (
                     key={typeKey}
                     id={`btn-tally-${typeKey}`}
                     onClick={() => handleAddVehicle(typeKey, 'manual_tap')}
-                    className={`relative w-full p-3 sm:p-3.5 rounded-xl border text-right transition-all flex items-center justify-between gap-3 select-none active:scale-[0.98] cursor-pointer ${
+                    className={`relative w-full p-2.5 sm:p-3 rounded-xl border text-right transition-all flex items-center justify-between gap-3 select-none active:scale-[0.98] cursor-pointer ${
                       isJustAdded
                         ? 'bg-emerald-500/30 border-emerald-400 scale-[1.02] shadow-lg shadow-emerald-500/20'
                         : 'bg-slate-900/80 hover:bg-slate-700/50 border-slate-700 hover:border-slate-600'

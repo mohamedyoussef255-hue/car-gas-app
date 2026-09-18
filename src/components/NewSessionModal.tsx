@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin, Navigation, Compass, Calendar, Clock, User, Flame, Check, Radio, Satellite } from 'lucide-react';
-import { MonitoringSession, VehicleType } from '../types';
+import { MonitoringSession, VehicleType, createDefaultVehicleCounts } from '../types';
 import { INITIAL_CNG_STATIONS } from '../data/initialData';
 import { CargasNgvLogo } from './CargasNgvLogo';
 import { 
@@ -128,13 +128,7 @@ export const NewSessionModal: React.FC<NewSessionModalProps> = ({
     const newCode = `CNG-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
     const now = new Date().toISOString();
 
-    const emptyCounts: Record<VehicleType, number> = {
-      private: 0,
-      microbus: 0,
-      taxi: 0,
-      suzuki_van: 0,
-      peugeot_station: 0,
-    };
+    const emptyCounts: Record<VehicleType, number> = createDefaultVehicleCounts();
 
     const session: MonitoringSession = {
       id: 'session-' + Date.now(),

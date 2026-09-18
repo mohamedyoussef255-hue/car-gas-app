@@ -1,9 +1,14 @@
 export type VehicleType = 
   | 'private'          // ملاكي
-  | 'microbus'         // اجرة ميكروباص
-  | 'taxi'             // اجرة تاكسي
-  | 'suzuki_van'       // سوزوكي فان
-  | 'peugeot_station'; // بيجو ستيشن
+  | 'taxi'             // تاكسي حسب المحافظة
+  | 'microbus'         // ميكروباص
+  | 'van'              // فان (سوزوكي تمناية)
+  | 'minibus'          // ميني باص
+  | 'pickup'           // نصف نقل
+  | 'bus'              // اتوبيس
+  | 'motorcycle'       // دراجة نارية / تروسيكل
+  | 'suzuki_van'       // توافق خلفي
+  | 'peugeot_station'; // توافق خلفي
 
 export interface VehicleConfig {
   type: VehicleType;
@@ -29,52 +34,123 @@ export const VEHICLE_TYPES: Record<VehicleType, VehicleConfig> = {
     badgeText: 'text-blue-400',
     borderColor: 'border-blue-500/40',
     accentColor: '#3b82f6',
-    dailyAvgKm: 35,
-    monthlySavingsEgp: 1850,
+    dailyAvgKm: 40,
+    monthlySavingsEgp: 2100,
     cngSuitability: 'متوسطة',
-    description: 'سيارات الصالون والركوب الشخصي مع متوسط استهلاك وقود منزلي',
+    description: 'سيارات الصالون والركوب الشخصي مع متوسط استهلاك وقود منزلي وتجاري',
     shortcutKey: '1',
+  },
+  taxi: {
+    type: 'taxi',
+    label: 'تاكسي حسب المحافظة',
+    subLabel: 'تاكسي العاصمة والأقاليم',
+    badgeBg: 'bg-amber-500/20',
+    badgeText: 'text-amber-400',
+    borderColor: 'border-amber-500/40',
+    accentColor: '#f59e0b',
+    dailyAvgKm: 200,
+    monthlySavingsEgp: 8600,
+    cngSuitability: 'مرتفعة جداً',
+    description: 'تاكسي أبيض (القاهرة/الجيزة)، أصفر وأسود (الإسكندرية)، برتقالي/أبيض (الأقاليم)',
+    shortcutKey: '2',
   },
   microbus: {
     type: 'microbus',
-    label: 'أجرة ميكروباص',
+    label: 'ميكروباص',
     subLabel: 'نقل جماعي 14 راكب',
     badgeBg: 'bg-emerald-500/20',
     badgeText: 'text-emerald-400',
     borderColor: 'border-emerald-500/40',
     accentColor: '#10b981',
-    dailyAvgKm: 220,
-    monthlySavingsEgp: 9400,
+    dailyAvgKm: 230,
+    monthlySavingsEgp: 9800,
     cngSuitability: 'مرتفعة جداً',
-    description: 'ميكروباصات نقل الخطوط الداخلية وبين الأقاليم (أولوية قصوى للغاز)',
-    shortcutKey: '2',
-  },
-  taxi: {
-    type: 'taxi',
-    label: 'أجرة تاكسي',
-    subLabel: 'تاكسي أبيض / أجرة عاصمة',
-    badgeBg: 'bg-amber-500/20',
-    badgeText: 'text-amber-400',
-    borderColor: 'border-amber-500/40',
-    accentColor: '#f59e0b',
-    dailyAvgKm: 180,
-    monthlySavingsEgp: 7800,
-    cngSuitability: 'مرتفعة جداً',
-    description: 'سيارات التاكسي الأجرة التي تقطع مسافات تشغيل يومية مكثفة',
+    description: 'ميكروباصات تويوتا هايس وكينج لونج خطوط السير الداخلية وبين المحافظات',
     shortcutKey: '3',
   },
-  suzuki_van: {
-    type: 'suzuki_van',
-    label: 'سوزوكي فان',
-    subLabel: 'فان 7 راكب / تمنية',
+  van: {
+    type: 'van',
+    label: 'فان',
+    subLabel: 'سوزوكي تمناية 7 راكب',
     badgeBg: 'bg-purple-500/20',
     badgeText: 'text-purple-400',
     borderColor: 'border-purple-500/40',
     accentColor: '#a855f7',
-    dailyAvgKm: 160,
-    monthlySavingsEgp: 6500,
+    dailyAvgKm: 170,
+    monthlySavingsEgp: 6900,
     cngSuitability: 'مرتفعة جداً',
-    description: 'سيارات الميني فان السوزوكي والشيفروليه N300 لنقل الركاب بالمدن',
+    description: 'سيارات الميني فان وسوزوكي وشيفروليه N300 لنقل الركاب والتوصيل',
+    shortcutKey: '4',
+  },
+  minibus: {
+    type: 'minibus',
+    label: 'ميني باص',
+    subLabel: 'كوستر 28 راكب ونقل موظفين',
+    badgeBg: 'bg-cyan-500/20',
+    badgeText: 'text-cyan-400',
+    borderColor: 'border-cyan-500/40',
+    accentColor: '#06b6d4',
+    dailyAvgKm: 190,
+    monthlySavingsEgp: 10500,
+    cngSuitability: 'مرتفعة جداً',
+    description: 'حافلات الميني باص والمتوسطة لنقل الشركات والمدارس والخطوط الحضرية',
+    shortcutKey: '5',
+  },
+  pickup: {
+    type: 'pickup',
+    label: 'نصف نقل',
+    subLabel: 'شيفروليه الدبابة وشاحنات خفيفة',
+    badgeBg: 'bg-orange-500/20',
+    badgeText: 'text-orange-400',
+    borderColor: 'border-orange-500/40',
+    accentColor: '#f97316',
+    dailyAvgKm: 180,
+    monthlySavingsEgp: 8200,
+    cngSuitability: 'مرتفعة جداً',
+    description: 'سيارات النقل الخفيف والبيك آب ونقل البضائع والتموين اليومي',
+    shortcutKey: '6',
+  },
+  bus: {
+    type: 'bus',
+    label: 'اتوبيس',
+    subLabel: 'نقل عام وسياحي وشاحنات',
+    badgeBg: 'bg-red-500/20',
+    badgeText: 'text-red-400',
+    borderColor: 'border-red-500/40',
+    accentColor: '#ef4444',
+    dailyAvgKm: 250,
+    monthlySavingsEgp: 14500,
+    cngSuitability: 'مرتفعة جداً',
+    description: 'أتوبيسات هيئة النقل العام والأتوبيسات السياحية الكبيرة والشاحنات',
+    shortcutKey: '7',
+  },
+  motorcycle: {
+    type: 'motorcycle',
+    label: 'دراجة نارية / تروسيكل',
+    subLabel: 'موتوسيكل ودليفري وتروسيكل',
+    badgeBg: 'bg-teal-500/20',
+    badgeText: 'text-teal-400',
+    borderColor: 'border-teal-500/40',
+    accentColor: '#14b8a6',
+    dailyAvgKm: 90,
+    monthlySavingsEgp: 2800,
+    cngSuitability: 'متوسطة',
+    description: 'الدراجات النارية والتروسيكل التجاري لنقل البضائع الخفيفة والتوصيل',
+    shortcutKey: '8',
+  },
+  // Backward compatibility
+  suzuki_van: {
+    type: 'suzuki_van',
+    label: 'فان',
+    subLabel: 'سوزوكي تمناية 7 راكب',
+    badgeBg: 'bg-purple-500/20',
+    badgeText: 'text-purple-400',
+    borderColor: 'border-purple-500/40',
+    accentColor: '#a855f7',
+    dailyAvgKm: 170,
+    monthlySavingsEgp: 6900,
+    cngSuitability: 'مرتفعة جداً',
+    description: 'سيارات الميني فان وسوزوكي 7 راكب',
     shortcutKey: '4',
   },
   peugeot_station: {
@@ -89,9 +165,25 @@ export const VEHICLE_TYPES: Record<VehicleType, VehicleConfig> = {
     monthlySavingsEgp: 11200,
     cngSuitability: 'مرتفعة جداً',
     description: 'سيارات بيجو 504 و505 ستيشن سقف طويل لخطوط السفر والأقاليم',
-    shortcutKey: '5',
+    shortcutKey: '9',
   },
 };
+
+export const VEHICLE_CONFIGS = VEHICLE_TYPES;
+
+export const createDefaultVehicleCounts = (overrides?: Partial<Record<VehicleType, number>>): Record<VehicleType, number> => ({
+  private: 0,
+  taxi: 0,
+  microbus: 0,
+  van: 0,
+  minibus: 0,
+  pickup: 0,
+  bus: 0,
+  motorcycle: 0,
+  suzuki_van: 0,
+  peugeot_station: 0,
+  ...overrides,
+});
 
 export interface DetectionRecord {
   id: string;
@@ -112,6 +204,12 @@ export interface MonitoringSession {
   locationName: string;
   governorate: string;
   city: string;
+  district?: string;
+  roadType?: string;
+  resolvedAddress?: string;
+  autoLocationResolved?: boolean;
+  onlinePoiData?: string;
+  customFieldValues?: Record<string, any>;
   coordinates: {
     lat: number;
     lng: number;
@@ -220,7 +318,9 @@ export interface DepartmentReviewAttachment {
   id: string;
   name: string;
   sizeBytes: number;
+  sizeFormatted?: string;
   type: 'pdf' | 'image' | 'word' | 'excel' | 'other';
+  category?: 'pdf' | 'image' | 'word' | 'excel' | 'other';
   mimeType: string;
   uploadedAt: string;
   uploadedBy: string;
@@ -365,10 +465,12 @@ export interface ExecutiveSiteRecommendation {
   committeeDate: string;
 }
 
+export type FacilityType = 'fueling_station' | 'conversion_center' | 'integrated';
+
 export interface CNGStation {
   id: string;
   name: string;
-  company: 'غازتك (Gastec)' | 'كارجاس (Cargas)' | 'ماستر جاس (MasterGas)' | 'طاقة غاز (Taqa Gas)' | 'الوطنية للغاز (ChillOut)';
+  company: 'غازتك (Gastec)' | 'كارجاس (Cargas)' | 'ماستر جاس (MasterGas)' | 'طاقة غاز (Taqa Gas)' | 'الوطنية للغاز (ChillOut)' | string;
   governorate: string;
   city: string;
   address: string;
@@ -376,7 +478,104 @@ export interface CNGStation {
   lng: number;
   dispenserCount: number;
   hasConversionCenter: boolean;
-  status: 'active' | 'maintenance';
+  facilityType?: FacilityType; // محطة تموين | مركز تحويل | متكاملة
+  status: 'active' | 'maintenance' | 'proposed';
+  brand?: 'cargas' | 'gastec' | 'mastergas' | 'taqa' | 'chillout' | 'wataniya' | 'totalenergies' | 'shell' | 'mobil' | 'misr_petroleum' | 'coop' | 'gogas' | 'other';
+  cngCapacityM3h?: number;
+  distanceFromSiteKm?: number;
+  notes?: string;
+  phone?: string;
+  openingDate?: string;
+  
+  // التشغيل والصيانة (Operational & Technical from Form 5)
+  compressorCapacityM3h?: number; // قوة الضاغط
+  compressorCount?: number; // عدد الضواغط
+  gasInletPressureBar?: number; // ضغط الغاز الداخل (بار)
+  queueCapacityVehicles?: number; // سعة طابور الانتظار (مركبة)
+  compressorBreakdowns?: 'routine_only' | 'rare' | 'frequent'; // أعطال الضاغط
+  maintenanceDowntimeHours?: number; // فترات التوقف للصيانة
+  compressorOperatingHours?: number; // متوسط ساعات عمل الضاغط يومياً
+  canopyType?: 'exists' | 'none' | 'spreader'; // المظلة: يوجد / لا يوجد / سبريدر
+  stationAreaRating?: 'small' | 'adequate' | 'large'; // المساحة: صغيرة / مناسبة / كبيرة
+  maneuverRating?: 'excellent' | 'adequate' | 'inadequate' | 'modification_needed'; // المناورة وسهولة الدخول والخروج
+  dailyCustomerCarsCount?: number; // متوسط عدد السيارات يومياً
+  dailyAvgSalesM3?: number; // متوسط المبيعات اليومية (م٣)
+  monthlyGasSalesM3?: number; // مبيعات الغاز الشهرية (م٣)
+  
+  // التسويق والدراسة الميدانية (Marketing & Trade Area from Forms 1, 2, 3, 4)
+  boundaryNorth?: string; // الحد البحري / الواجهة
+  boundarySouth?: string; // الحد القبلي / الخلفي
+  boundaryEast?: string;  // الحد الشرقي / الجانب الأيمن
+  boundaryWest?: string;  // الحد الغربي / الجانب الأيسر
+  totalAreaM2?: number;   // إجمالي المساحة
+  siteDimensions?: string; // أبعاد الموقع: واجهة × عمق
+  landTenure?: 'ownership' | 'usufruct' | 'allocation' | 'lease'; // ملك / حق انتفاع / تخصيص / إيجار
+  landNature?: 'agricultural' | 'urban_vacant' | 'existing_fuel_station' | 'other';
+  gasGridAvailable?: boolean; // توافر خط الغاز بالمنطقة
+  areaDescription?: string; // منطقة سكنية / صناعية / طريق رئيسي
+  siteRating?: '+A' | 'A' | 'B' | 'C'; // تقييم الموقع
+  nearestPetrolStation?: string; // أقرب محطة بنزين ومسافتها
+  nearestPetrolDistance?: string;
+  nearestCngStation?: string; // أقرب محطة غاز ومسافتها
+  nearestCngDistance?: string;
+  nearestBusStand?: string; // أقرب موقف سيارات
+  nearestBusStandDistance?: string;
+  trafficQuarterHourRating?: 'weak' | 'medium' | 'high' | 'very_high'; // الكثافة المرورية في ربع ساعة
+  liquidFuelSales?: {
+    gasoline95?: number;
+    gasoline92?: number;
+    gasoline80?: number;
+    diesel?: number;
+  };
+  conversionCenterAvailability?: string; // توافر مركز تحويل بالمنطقة
+  tradeAreaIndustrialDemand?: string; // المصانع والشركات والمزارع التي تعمل بالغاز
+}
+
+// Contact Number Item for Master Control Panel
+export interface ContactNumberItem {
+  id: string;
+  title: string;
+  number: string;
+  department: string;
+  type: 'hotline' | 'mobile' | 'landline' | 'whatsapp' | 'emergency';
+  isPrimary: boolean;
+  description?: string;
+  isActive: boolean;
+}
+
+// Landowner Site Inspection Request (نموذج طلب المعاينة لإقامة محطة غاز كارجاس)
+export interface LandownerInspectionRequest {
+  id: string;
+  requestNumber: string;
+  applicantName: string; // مقدمه لسيادتكم
+  nationalId: string;    // بطاقة رقم قومي
+  residenceAddress: string; // المقيم في
+  residenceGovernorate: string; // المحافظة
+  phone: string;         // تليفون
+  siteAddress: string;   // عنوان الموقع
+  siteDistrict: string;  // المركز / الحي
+  siteGovernorate: string; // محافظة الموقع
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+  boundaryNorth: string; // الحد البحري
+  boundarySouth: string; // الحد القبلي
+  boundaryEast: string;  // الحد الشرقي
+  boundaryWest: string;  // الحد الغربي
+  totalAreaM2: number;   // مساحة الموقع تقريباً
+  siteDimensions?: string; // واجهة × عمق
+  currentSiteStatus: 'vacant_land' | 'existing_fuel_station' | 'building' | 'other'; // الوضع الحالي
+  landTenure: 'ownership' | 'usufruct' | 'allocation' | 'lease'; // ملك / حق انتفاع / تخصيص / إيجار
+  landNature: 'agricultural' | 'urban_vacant' | 'existing_station' | 'other'; // أرض زراعية / فضاء داخل كردون / محطة قائمة / أخرى
+  gasGridAvailable: boolean; // يوجد غاز طبيعي بالمنطقة / لا يوجد
+  requestDate: string; // تحرير في
+  status: 'pending' | 'survey_scheduled' | 'approved' | 'rejected' | 'station_created';
+  notes?: string;
+  assignedSurveyor?: string;
+  surveyDate?: string;
+  surveyRating?: '+A' | 'A' | 'B' | 'C';
+  createdStationId?: string;
 }
 
 export interface FeasibilityFinancialMetrics {
@@ -413,6 +612,34 @@ export interface FuelPricing {
   lastUpdated: string;
 }
 
+// Dynamic Field Definition for CapEx, OpEx, Margins, and Feasibility Parameters
+export interface FeasibilityFieldDefinition {
+  id: string;
+  key: string;
+  category: 'capex' | 'opex' | 'margin' | 'operational';
+  label: string; // The user can change e.g. "وحدة الضواغط الرئيسية" to whatever they want!
+  subLabel?: string;
+  unit: string; // "ج.م", "ج.م/م³", "ج.م/سنة", "%"
+  defaultValue: number;
+  value: number;
+  isVisible: boolean; // Show or hide toggle!
+  isCustom?: boolean; // Added by user
+  description?: string;
+}
+
+// Fuel Price & Energy Item for Dynamic Fuels Management
+export interface CustomFuelItem {
+  id: string;
+  key?: string;
+  name: string; // User can rename e.g. "بنزين 80" or "غاز طبيعي كارجاس"
+  subName?: string;
+  price: number;
+  unit: string; // "ج.م / لتر", "ج.م / م³", "ج.م / ك.و.س"
+  color: string;
+  isVisible: boolean;
+  isCustom?: boolean;
+}
+
 // Feasibility & CapEx/OpEx Master Defaults
 export interface FeasibilityDefaults {
   capexCompressors: number;
@@ -432,6 +659,8 @@ export interface FeasibilityDefaults {
   monthlyConversionsCount: number;
   discountRatePercent: number;
   operatingHoursPerDay: number;
+  // Dynamic fields list enabling add, edit label/name, remove, and show/hide:
+  customFields?: FeasibilityFieldDefinition[];
 }
 
 // Technical Guide Centers
@@ -476,14 +705,20 @@ export interface ConversionSystemItem {
 // Global Platform Master Settings
 export interface PlatformMasterSettings {
   pricing: FuelPricing;
+  customFuels?: CustomFuelItem[];
   feasibility: FeasibilityDefaults;
   centers: CargasCenterItem[];
   cylinders: CylinderSpecItem[];
   systems: ConversionSystemItem[];
+  contacts?: ContactNumberItem[];
   general: {
     companyName: string;
-    hotline: string;
+    hotline: string; // 19544
     defaultSurveyorName: string;
+    emergencyHotline?: string;
+    marketingPhone?: string;
+    whatsappNumber?: string;
+    customerServicePhone?: string;
   };
 }
 
@@ -531,6 +766,175 @@ export interface CompanyStationCensusItem {
   annualVolumeM3?: number;
   investmentValueMillionEgp?: number;
   contractorOrPartner?: string;
+  notes?: string;
+}
+
+// -------------------------------------------------------------
+// Department Portal & Role-Based Access Control (RBAC) Types
+// -------------------------------------------------------------
+export type DepartmentRole = 
+  | 'admin'        // إدارة النظام والتحكم الشامل
+  | 'marketing'    // إدارة التسويق والدراسات الميدانية وتكليف المعاينين
+  | 'surveyor'     // المعاين الميداني (رابط الرصد المستقل عبر الواتساب)
+  | 'projects'     // إدارة المشروعات والأعمال المدنية
+  | 'hse'          // إدارة الأمن الصناعي والسلامة والصحة المهنية
+  | 'operations'   // إدارة التشغيل والصيانة (المعدات والآلات والضواغط والموزعات)
+  | 'technical'    // الإدارة الفنية (ضغوط الشبكة والمواصفات القياسية)
+  | 'licensing'    // إدارة التراخيص والموافقات الحكومية
+  | 'legal'        // الإدارة القانونية والعقود
+  | 'financial';   // الإدارة المالية ودراسات الجدوى
+
+export interface DepartmentMetadata {
+  role: DepartmentRole;
+  title: string;
+  subtitle: string;
+  badge: string;
+  color: string;
+  bgGradient: string;
+  iconName: string;
+  primaryScope: string;
+  keyResponsibilities: string[];
+}
+
+// Dynamic Custom Form Field (Editable by Admin only)
+export interface CustomFormField {
+  id: string;
+  department: DepartmentRole;
+  label: string;
+  key: string;
+  type: 'text' | 'number' | 'select' | 'textarea' | 'date' | 'boolean' | 'file';
+  options?: string[];
+  required: boolean;
+  visible: boolean; // إظهار أو إخفاء الحقل
+  defaultValue?: string | number | boolean;
+  description?: string;
+  section?: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+// Form Change Request submitted by a Department to System Admin
+export interface FormChangeRequest {
+  id: string;
+  department: DepartmentRole;
+  departmentName: string;
+  requesterName: string;
+  requestType: 'add_field' | 'edit_field' | 'hide_field' | 'delete_field' | 'custom_modification' | 'import_file';
+  fieldLabel: string;
+  fieldType?: string;
+  fieldKey?: string;
+  justification: string;
+  proposedSection?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedAt: string;
+  adminNotes?: string;
+  reviewedAt?: string;
+  // Attached Word/Excel file data
+  attachedFileName?: string;
+  attachedFileType?: 'word' | 'excel' | 'csv';
+  attachedFileSize?: string;
+  attachedFileContent?: string;
+  parsedFields?: {
+    label: string;
+    type: 'text' | 'number' | 'select' | 'boolean' | 'date';
+    key: string;
+    section?: string;
+    options?: string[];
+    description?: string;
+  }[];
+}
+
+// Landowner Site Survey Application (طلب معاينة مقدم من مالك الموقع / الأرض لإضافة محطة غاز أو مركز تحويل)
+export interface LandownerApplication {
+  id: string;
+  ownerName: string;
+  ownerType: 'owner' | 'authorized_agent' | 'station_operator' | 'investor';
+  nationalId?: string;
+  phoneNumber: string;
+  whatsappNumber: string;
+  email?: string;
+  governorate: string;
+  city: string;
+  districtOrVillage: string;
+  fullAddress: string;
+  gpsCoords?: { lat: number; lng: number };
+  totalAreaM2: number;
+  frontageMeters: number;
+  depthMeters: number;
+  currentSiteUsage: 'vacant_land' | 'existing_fuel_station' | 'commercial_garage' | 'transport_hub' | 'industrial_warehouse';
+  existingStationBrand?: string;
+  roadClassification: 'highway' | 'main_axis' | 'commercial_street' | 'city_entrance';
+  hasMedianIsland: boolean;
+  hasOppositeUTurn: boolean;
+  roadWidthMeters: number;
+  ownershipDocumentType: 'registered_deed' | 'primary_contract' | 'usufruct' | 'long_term_lease';
+  licenseStatus: 'has_building_permit' | 'has_commercial_license' | 'agricultural_with_reconciliation' | 'unlicensed';
+  partnershipPreference: 'cng_only_station' | 'integrated_fuel_and_cng' | 'conversion_center_only' | 'station_and_conversion' | 'long_term_lease_to_cargas' | 'revenue_share';
+  applicationDate: string;
+  status: 'pending_review' | 'surveyor_dispatched' | 'survey_completed' | 'approved_marketing' | 'rejected';
+  notes?: string;
+  marketingEvaluationScore?: number;
+  assignedSurveyorName?: string;
+  assignedSurveyorPhone?: string;
+  linkedSessionId?: string;
+}
+
+// WhatsApp Shareable Field Survey Assignment
+export interface MarketingSurveyAssignment {
+  id: string;
+  siteName: string;
+  governorate: string;
+  cityOrDistrict: string;
+  addressDetails?: string;
+  surveyorName: string;
+  surveyorPhone: string;
+  assignedBy: string;
+  assignedDate: string;
+  targetScope: 'new_station' | 'dual_fuel_conversion' | 'fleet_census' | 'highway_corridor';
+  status: 'dispatched' | 'in_progress' | 'completed' | 'cancelled';
+  surveyToken: string;
+  surveyUrl: string;
+  instructions?: string;
+  completedSessionId?: string;
+}
+
+export type ActiveTabType = 
+  | 'camera' 
+  | 'sessions' 
+  | 'map' 
+  | 'feasibility' 
+  | 'departments' 
+  | 'execution' 
+  | 'calculator' 
+  | 'guide' 
+  | 'admin'
+  | 'invitations';
+
+// WhatsApp General Manager Invitation record
+export interface DepartmentInvitationItem {
+  id: string;
+  department: DepartmentRole;
+  departmentName: string;
+  recipientName: string;
+  recipientPhone: string;
+  userType: 'general_manager' | 'staff' | 'engineer';
+  roleTitle: string;
+  directUrl: string;
+  sentAt: string;
+  sentBy: string;
+  notes?: string;
+}
+
+// Department Team Member Invitation record (sent by General Manager)
+export interface DepartmentTeamMemberInvite {
+  id: string;
+  department: DepartmentRole;
+  memberName: string;
+  memberPhone: string;
+  memberRole: string; // e.g. مهندس موقع، فني، محاسب، إداري
+  directUrl: string;
+  invitedAt: string;
+  invitedBy: string;
   notes?: string;
 }
 

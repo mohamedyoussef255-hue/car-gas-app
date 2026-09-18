@@ -30,7 +30,10 @@ import {
   Calendar,
   Layers,
   ArrowUpDown,
-  FileText
+  FileText,
+  UploadCloud,
+  Camera,
+  Share2
 } from 'lucide-react';
 import {
   PlatformMasterSettings,
@@ -42,10 +45,19 @@ import {
   MonitoringSession,
   LocationQueryFilter,
   VehicleType,
-  VEHICLE_TYPES
+  VEHICLE_TYPES,
+  CustomFormField,
+  FormChangeRequest,
+  DepartmentRole
 } from '../types';
 import { CargasNgvLogo } from './CargasNgvLogo';
 import { DEFAULT_FUEL_PRICING, DEFAULT_FEASIBILITY_SETTINGS } from '../data/defaultSettings';
+import { AdminHistoricalDataImporter } from './AdminHistoricalDataImporter';
+import { AdminFormCustomizer } from './AdminFormCustomizer';
+import { AdminContactsManager } from './AdminContactsManager';
+import { AdminFeasibilityManager } from './AdminFeasibilityManager';
+import { AdminFuelsManager } from './AdminFuelsManager';
+import { AdminInvitationsManager } from './AdminInvitationsManager';
 
 interface AdminControlPanelProps {
   settings: PlatformMasterSettings;
@@ -56,6 +68,14 @@ interface AdminControlPanelProps {
   onDeleteSession?: (sessionId: string) => void;
   onClearSessions?: () => void;
   onRestoreDefaultSessions?: () => void;
+  onImportSessions?: (newSessions: MonitoringSession[]) => void;
+  customFields?: CustomFormField[];
+  onUpdateFields?: (fields: CustomFormField[]) => void;
+  changeRequests?: FormChangeRequest[];
+  onUpdateChangeRequests?: (requests: FormChangeRequest[]) => void;
+  onPreviewDepartment?: (dept: DepartmentRole) => void;
+  initialTab?: 'pricing' | 'contacts' | 'form_builder' | 'queries' | 'datamgmt' | 'analytics' | 'feasibility' | 'technical' | 'historical' | 'invitations';
+  selectedFormBuilderDept?: DepartmentRole;
 }
 
 export const AdminControlPanel: React.FC<AdminControlPanelProps> = ({
@@ -67,9 +87,18 @@ export const AdminControlPanel: React.FC<AdminControlPanelProps> = ({
   onDeleteSession,
   onClearSessions,
   onRestoreDefaultSessions,
+  onImportSessions,
+  customFields = [],
+  onUpdateFields = () => {},
+  changeRequests = [],
+  onUpdateChangeRequests = () => {},
+  onPreviewDepartment,
+  initialTab = 'pricing',
+  selectedFormBuilderDept,
 }) => {
   // Active Panel Tab
-  const [activeTab, setActiveTab] = useState<'pricing' | 'queries' | 'datamgmt' | 'analytics' | 'feasibility' | 'technical'>('pricing');
+  const [activeTab, setActiveTab] = useState<'pricing' | 'contacts' | 'form_builder' | 'queries' | 'datamgmt' | 'analytics' | 'feasibility' | 'technical' | 'historical' | 'invitations'>(initialTab);
+  const [currentFormBuilderDept, setCurrentFormBuilderDept] = useState<DepartmentRole>(selectedFormBuilderDept || 'operations');
 
   // Local draft states for easy editing and saving
   const [pricingDraft, setPricingDraft] = useState<FuelPricing>(settings.pricing);
@@ -549,6 +578,52 @@ export const AdminControlPanel: React.FC<AdminControlPanelProps> = ({
           </button>
 
           <button
+            id="tab-contacts"
+            onClick={() => setActiveTab('contacts')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+              activeTab === 'contacts'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+                : 'bg-slate-900/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/80'
+            }`}
+          >
+            <Phone className="w-4 h-4 text-emerald-400" />
+            <span>إدارة أرقام التواصل والخط الساخن ({settings.general.hotline || '19544'})</span>
+          </button>
+
+          <button
+            id="tab-form-builder"
+            onClick={() => setActiveTab('form_builder')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+              activeTab === 'form_builder'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+                : 'bg-slate-900/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/80'
+            }`}
+          >
+            <Sliders className="w-4 h-4 text-emerald-400" />
+            <span>تخصيص نماذج الإدارات والاعتمادات</span>
+            {changeRequests && changeRequests.filter(r => r.status === 'pending').length > 0 && (
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+            )}
+          </button>
+
+          {/* New Tab: WhatsApp Invitations to Department General Managers */}
+          <button
+            id="tab-invitations"
+            onClick={() => setActiveTab('invitations')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+              activeTab === 'invitations'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+                : 'bg-slate-900/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/80'
+            }`}
+          >
+            <Share2 className="w-4 h-4 text-emerald-400" />
+            <span>دعوات مديري العموم بالواتساب</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+              روابط مخصصة
+            </span>
+          </button>
+
+          <button
             id="tab-queries"
             onClick={() => setActiveTab('queries')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
@@ -613,6 +688,19 @@ export const AdminControlPanel: React.FC<AdminControlPanelProps> = ({
             <span>إدارة وتفريغ البيانات وتحديث النظام</span>
           </button>
 
+          <button
+            id="tab-historical"
+            onClick={() => setActiveTab('historical')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+              activeTab === 'historical'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+                : 'bg-slate-900/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/80'
+            }`}
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+            <span>استيراد وتوثيق البيانات التاريخية (Excel & صور)</span>
+          </button>
+
           {/* Direct Clear Button In Tabs Bar */}
           <button
             id="btn-quick-clear-data"
@@ -627,204 +715,35 @@ export const AdminControlPanel: React.FC<AdminControlPanelProps> = ({
       </div>
 
       {/* ============================================================== */}
-      {/* TAB 1: FUEL & CNG PRICING ADJUSTMENT (GLOBAL EFFECT)           */}
+      {/* TAB: CONTACTS & HOTLINE 19544 MANAGEMENT                      */}
+      {/* ============================================================== */}
+      {activeTab === 'contacts' && (
+        <AdminContactsManager
+          settings={settings}
+          onUpdateSettings={onUpdateSettings}
+          showSaveNotice={showSaveNotice}
+        />
+      )}
+
+      {/* ============================================================== */}
+      {/* TAB 1: FUEL & CNG PRICING ADJUSTMENT (DYNAMIC FUELS MANAGER)   */}
       {/* ============================================================== */}
       {activeTab === 'pricing' && (
-        <div className="space-y-6">
-          <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-6 shadow-xl space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-700">
-              <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Flame className="w-5 h-5 text-emerald-400" />
-                  <span>تعديل سعر الغاز الطبيعي وأسعار الوقود (ينعكس فوراً على حاسبة الوفر ودراسة الجدوى)</span>
-                </h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  أي تعديل هنا يتم حفظه وتطبيقه تلقائياً في كافة صفحات المنظومة، حاسبة الوفر المالي للأساطيل، ونموذج التدفقات النقدية لدراسة الجدوى.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleResetPricing}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-semibold cursor-pointer transition-colors"
-                >
-                  <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
-                  <span>استعادة الأسعار الرسمية</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSavePricing}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-emerald-600/30 cursor-pointer transition-all"
-                >
-                  <Check className="w-4 h-4" />
-                  <span>تطبيق التحديث على كافة الصفحات</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Inputs Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              
-              {/* CNG Price Card (Highlighted) */}
-              <div className="bg-emerald-950/40 border-2 border-emerald-500/60 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-emerald-300">سعر الغاز الطبيعي (CNG)</span>
-                    <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono font-bold">م³</span>
-                  </div>
-                  <div className="relative">
-                    <input
-                      id="input-cng-price"
-                      type="number"
-                      step="0.25"
-                      min="1"
-                      max="50"
-                      value={pricingDraft.cngPrice}
-                      onChange={(e) => setPricingDraft({ ...pricingDraft, cngPrice: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-slate-900 border border-emerald-500/50 rounded-xl px-3 py-2.5 text-xl font-mono font-black text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    />
-                    <span className="absolute left-3 top-3 text-xs text-slate-400">ج.م / م³</span>
-                  </div>
-                </div>
-                <p className="text-[11px] text-emerald-400/80 mt-3">
-                  ★ المحدد الرئيسي في حاسبة الوفر ودراسة الجدوى
-                </p>
-              </div>
-
-              {/* Gasoline 92 */}
-              <div className="bg-slate-900/80 border border-slate-700/80 rounded-2xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-amber-300">بنزين 92 (الأكثر شيوعاً)</span>
-                  <span className="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono font-bold">لتر</span>
-                </div>
-                <div className="relative">
-                  <input
-                    id="input-gasoline-92-price"
-                    type="number"
-                    step="0.25"
-                    min="1"
-                    max="60"
-                    value={pricingDraft.gasoline92Price}
-                    onChange={(e) => setPricingDraft({ ...pricingDraft, gasoline92Price: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-lg font-mono font-bold text-white focus:border-amber-500 focus:outline-none"
-                  />
-                  <span className="absolute left-3 top-3 text-xs text-slate-400">ج.م / لتر</span>
-                </div>
-                <span className="text-[10px] text-slate-500 block mt-2">مقارن مع الملاكي والتاكسي والسيارات الحديثة</span>
-              </div>
-
-              {/* Gasoline 80 */}
-              <div className="bg-slate-900/80 border border-slate-700/80 rounded-2xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-slate-200">بنزين 80 (الشعبي)</span>
-                  <span className="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-300 font-mono font-bold">لتر</span>
-                </div>
-                <div className="relative">
-                  <input
-                    id="input-gasoline-80-price"
-                    type="number"
-                    step="0.25"
-                    min="1"
-                    max="60"
-                    value={pricingDraft.gasoline80Price}
-                    onChange={(e) => setPricingDraft({ ...pricingDraft, gasoline80Price: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-lg font-mono font-bold text-white focus:border-amber-500 focus:outline-none"
-                  />
-                  <span className="absolute left-3 top-3 text-xs text-slate-400">ج.م / لتر</span>
-                </div>
-                <span className="text-[10px] text-slate-500 block mt-2">مقارن مع الميكروباص والسوزوكي والبيجو</span>
-              </div>
-
-              {/* Gasoline 95 */}
-              <div className="bg-slate-900/80 border border-slate-700/80 rounded-2xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-rose-300">بنزين 95 (المحركات التوربو)</span>
-                  <span className="text-xs px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 font-mono font-bold">لتر</span>
-                </div>
-                <div className="relative">
-                  <input
-                    id="input-gasoline-95-price"
-                    type="number"
-                    step="0.25"
-                    min="1"
-                    max="70"
-                    value={pricingDraft.gasoline95Price}
-                    onChange={(e) => setPricingDraft({ ...pricingDraft, gasoline95Price: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-lg font-mono font-bold text-white focus:border-rose-500 focus:outline-none"
-                  />
-                  <span className="absolute left-3 top-3 text-xs text-slate-400">ج.م / لتر</span>
-                </div>
-                <span className="text-[10px] text-slate-500 block mt-2">مقارن مع سيارات الحقن المباشر والتربو</span>
-              </div>
-
-              {/* Diesel */}
-              <div className="bg-slate-900/80 border border-slate-700/80 rounded-2xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-cyan-300">السولار (Diesel)</span>
-                  <span className="text-xs px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-mono font-bold">لتر</span>
-                </div>
-                <div className="relative">
-                  <input
-                    id="input-diesel-price"
-                    type="number"
-                    step="0.25"
-                    min="1"
-                    max="60"
-                    value={pricingDraft.dieselPrice}
-                    onChange={(e) => setPricingDraft({ ...pricingDraft, dieselPrice: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-lg font-mono font-bold text-white focus:border-cyan-500 focus:outline-none"
-                  />
-                  <span className="absolute left-3 top-3 text-xs text-slate-400">ج.م / لتر</span>
-                </div>
-                <span className="text-[10px] text-slate-500 block mt-2">مقارن لنظام الوقود المزدوج للحافلات والشاحنات</span>
-              </div>
-
-            </div>
-
-            {/* Real-time Savings Delta Simulation Preview */}
-            <div className="bg-slate-900/90 border border-slate-700 rounded-2xl p-5">
-              <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-emerald-400" />
-                <span>محاكاة فورية لفارق التكلفة والوفر الناتج عن الأسعار المعدلة:</span>
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                
-                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-                  <span className="text-xs text-slate-400 block mb-1">الوفر المالي لكل لتر بنزين 92 مستبدل:</span>
-                  <strong className="text-xl font-mono font-black text-emerald-400">
-                    {(pricingDraft.gasoline92Price - pricingDraft.cngPrice).toFixed(2)} ج.م/لتر
-                  </strong>
-                  <span className="text-[11px] text-slate-500 block mt-1">
-                    وفر بنسبة {Math.round(((pricingDraft.gasoline92Price - pricingDraft.cngPrice) / pricingDraft.gasoline92Price) * 100)}%
-                  </span>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-                  <span className="text-xs text-slate-400 block mb-1">الوفر المالي لكل لتر بنزين 80 مستبدل:</span>
-                  <strong className="text-xl font-mono font-black text-emerald-400">
-                    {(pricingDraft.gasoline80Price - pricingDraft.cngPrice).toFixed(2)} ج.م/لتر
-                  </strong>
-                  <span className="text-[11px] text-slate-500 block mt-1">
-                    وفر بنسبة {Math.round(((pricingDraft.gasoline80Price - pricingDraft.cngPrice) / pricingDraft.gasoline80Price) * 100)}%
-                  </span>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-                  <span className="text-xs text-slate-400 block mb-1">الوفر المالي الشهري التقريبي لسيارة تاكسي/أجرة:</span>
-                  <strong className="text-xl font-mono font-black text-amber-400">
-                    {Math.round(180 * 26 * 0.095 * (pricingDraft.gasoline92Price - pricingDraft.cngPrice)).toLocaleString('ar-EG')} ج.م
-                  </strong>
-                  <span className="text-[11px] text-slate-500 block mt-1">
-                    (على أساس 180 كم/يوم، 26 يوم تشغيل)
-                  </span>
-                </div>
-
-              </div>
-            </div>
-
-          </div>
-        </div>
+        <AdminFuelsManager
+          currentPricing={settings.pricing}
+          customFuels={settings.customFuels}
+          onSave={(updatedPricing, updatedFuels) => {
+            setPricingDraft(updatedPricing);
+            const updated: PlatformMasterSettings = {
+              ...settings,
+              pricing: updatedPricing,
+              customFuels: updatedFuels,
+            };
+            onUpdateSettings(updated);
+            showSaveNotice('تم تحديث وتعميم أسعار الغاز والبنزين وأنواع الوقود بنجاح على كافة أقسام المنظومة وحاسبة الوفر!');
+          }}
+          onReset={handleResetPricing}
+        />
       )}
 
       {/* ============================================================== */}
@@ -1288,157 +1207,19 @@ export const AdminControlPanel: React.FC<AdminControlPanelProps> = ({
       {/* TAB 4: FEASIBILITY CAPEX & OPEX DEFAULTS MANAGEMENT           */}
       {/* ============================================================== */}
       {activeTab === 'feasibility' && (
-        <div className="space-y-6">
-          <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-6 shadow-xl space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-700">
-              <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-yellow-400" />
-                  <span>تعديل محددات دراسة الجدوى وتكاليف إنشاء المحطات (CapEx & OpEx)</span>
-                </h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  تعديل التكاليف الاستثمارية الافتراضية، تكاليف التشغيل السنوية، وهامش ربح الغاز ومراكز التحويل.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleResetFeasibility}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-semibold cursor-pointer transition-colors"
-                >
-                  <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
-                  <span>استعادة القيم الافتراضية</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveFeasibility}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-emerald-600/30 cursor-pointer transition-all"
-                >
-                  <Check className="w-4 h-4" />
-                  <span>حفظ وتعميم محددات الجدوى</span>
-                </button>
-              </div>
-            </div>
-
-            {/* CapEx Section */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                <Building2 className="w-4 h-4" />
-                <span>التكاليف الاستثمارية التقديرية (CapEx):</span>
-              </h4>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700">
-                  <label className="text-xs text-slate-400 block mb-1">وحدة الضواغط الرئيسية (Compressors):</label>
-                  <input
-                    type="number"
-                    step="100000"
-                    value={feasibilityDraft.capexCompressors}
-                    onChange={(e) => setFeasibilityDraft({ ...feasibilityDraft, capexCompressors: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm font-mono text-white font-bold"
-                  />
-                  <span className="text-[10px] text-slate-500">ج.م</span>
-                </div>
-
-                <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700">
-                  <label className="text-xs text-slate-400 block mb-1">اسطوانات التخزين والمخازن (Cascades):</label>
-                  <input
-                    type="number"
-                    step="100000"
-                    value={feasibilityDraft.capexCascades}
-                    onChange={(e) => setFeasibilityDraft({ ...feasibilityDraft, capexCascades: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm font-mono text-white font-bold"
-                  />
-                  <span className="text-[10px] text-slate-500">ج.م</span>
-                </div>
-
-                <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700">
-                  <label className="text-xs text-slate-400 block mb-1">موزعات الغاز السريعة (Dispensers):</label>
-                  <input
-                    type="number"
-                    step="50000"
-                    value={feasibilityDraft.capexDispensers}
-                    onChange={(e) => setFeasibilityDraft({ ...feasibilityDraft, capexDispensers: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm font-mono text-white font-bold"
-                  />
-                  <span className="text-[10px] text-slate-500">ج.م</span>
-                </div>
-
-                <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700">
-                  <label className="text-xs text-slate-400 block mb-1">الأعمال المدنية والمظلات والمحولات:</label>
-                  <input
-                    type="number"
-                    step="100000"
-                    value={feasibilityDraft.capexCivilAndCanopy}
-                    onChange={(e) => setFeasibilityDraft({ ...feasibilityDraft, capexCivilAndCanopy: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm font-mono text-white font-bold"
-                  />
-                  <span className="text-[10px] text-slate-500">ج.م</span>
-                </div>
-              </div>
-            </div>
-
-            {/* OpEx and Profit Margins Section */}
-            <div className="space-y-3 pt-4 border-t border-slate-700/80">
-              <h4 className="text-sm font-bold text-amber-400 flex items-center gap-2">
-                <DollarSign className="w-4 h-4" />
-                <span>مصاريف التشغيل وهوامش الربح:</span>
-              </h4>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700">
-                  <label className="text-xs text-slate-400 block mb-1">هامش ربح الغاز الطبيعي (ج.م/م³):</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={feasibilityDraft.cngProfitMarginPerM3}
-                    onChange={(e) => setFeasibilityDraft({ ...feasibilityDraft, cngProfitMarginPerM3: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm font-mono text-emerald-400 font-bold"
-                  />
-                  <span className="text-[10px] text-slate-500">هامش ربح المحطة لكل متر مكعب</span>
-                </div>
-
-                <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700">
-                  <label className="text-xs text-slate-400 block mb-1">نسبة الاستقطاب من حركة المرور (%):</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    value={feasibilityDraft.captureRatePercent}
-                    onChange={(e) => setFeasibilityDraft({ ...feasibilityDraft, captureRatePercent: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm font-mono text-amber-400 font-bold"
-                  />
-                  <span className="text-[10px] text-slate-500">% من السيارات المارة التي ستمون بالمحطة</span>
-                </div>
-
-                <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700">
-                  <label className="text-xs text-slate-400 block mb-1">صافي ربح تحويل السيارة الواحدة (ج.م):</label>
-                  <input
-                    type="number"
-                    step="100"
-                    value={feasibilityDraft.conversionNetMarginPerCar}
-                    onChange={(e) => setFeasibilityDraft({ ...feasibilityDraft, conversionNetMarginPerCar: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm font-mono text-white font-bold"
-                  />
-                  <span className="text-[10px] text-slate-500">ج.م / سيارة بمركز التحويل</span>
-                </div>
-
-                <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700">
-                  <label className="text-xs text-slate-400 block mb-1">تكلفة الكهرباء السنوية المقدرة:</label>
-                  <input
-                    type="number"
-                    step="50000"
-                    value={feasibilityDraft.opexElectricityAnnual}
-                    onChange={(e) => setFeasibilityDraft({ ...feasibilityDraft, opexElectricityAnnual: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm font-mono text-white font-bold"
-                  />
-                  <span className="text-[10px] text-slate-500">ج.م سنوياً</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
+        <AdminFeasibilityManager
+          initialDefaults={settings.feasibility}
+          onSave={(updatedFeasibility) => {
+            setFeasibilityDraft(updatedFeasibility);
+            const updated: PlatformMasterSettings = {
+              ...settings,
+              feasibility: updatedFeasibility,
+            };
+            onUpdateSettings(updated);
+            showSaveNotice('تم حفظ وتعميم محددات وتكاليف دراسة الجدوى والمسميات الجديدة بنجاح!');
+          }}
+          onReset={handleResetFeasibility}
+        />
       )}
 
       {/* ============================================================== */}
@@ -1836,7 +1617,42 @@ export const AdminControlPanel: React.FC<AdminControlPanelProps> = ({
       )}
 
       {/* ============================================================== */}
-      {/* MODAL 1: CONFIRM CLEAR ALL TEST DATA                           */}
+      {/* TAB: FORM BUILDER & DEPARTMENT REQUESTS APPROVAL              */}
+      {/* ============================================================== */}
+      {activeTab === 'form_builder' && (
+        <AdminFormCustomizer
+          customFields={customFields}
+          onUpdateFields={onUpdateFields}
+          changeRequests={changeRequests}
+          onUpdateChangeRequests={onUpdateChangeRequests}
+          initialDept={currentFormBuilderDept}
+          onPreviewDepartment={onPreviewDepartment}
+        />
+      )}
+
+      {/* ============================================================== */}
+      {/* TAB: WHATSAPP INVITATIONS & DIRECT LINKS DISPATCHER            */}
+      {/* ============================================================== */}
+      {activeTab === 'invitations' && (
+        <AdminInvitationsManager
+          customFields={customFields}
+          onPreviewDepartment={onPreviewDepartment || (() => {})}
+          onNavigateToFormBuilder={(dept: DepartmentRole) => {
+            setCurrentFormBuilderDept(dept);
+            setActiveTab('form_builder');
+          }}
+        />
+      )}
+
+      {/* ============================================================== */}
+      {/* TAB 7: HISTORICAL DATA & EXCEL / PHOTO ARCHIVE IMPORT          */}
+      {/* ============================================================== */}
+      {activeTab === 'historical' && (
+        <AdminHistoricalDataImporter
+          sessions={sessions}
+          onImportSessions={onImportSessions || (() => {})}
+        />
+      )}
       {/* ============================================================== */}
       {showClearConfirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">

@@ -25,7 +25,7 @@ import {
   Settings,
   Award
 } from 'lucide-react';
-import { MonitoringSession, VEHICLE_TYPES, VehicleType, FuelPricing, FeasibilityDefaults } from '../types';
+import { MonitoringSession, VEHICLE_TYPES, VehicleType, FuelPricing, FeasibilityDefaults, createDefaultVehicleCounts } from '../types';
 import { FeasibilityReportModal } from './FeasibilityReportModal';
 import { CargasNgvLogo } from './CargasNgvLogo';
 
@@ -114,8 +114,38 @@ export const CngFeasibilityAnalytics: React.FC<CngFeasibilityAnalyticsProps> = (
       setMonthlyConversionsCount(feasibilityDefaults.monthlyConversionsCount);
       setDiscountRate(feasibilityDefaults.discountRatePercent);
       setOperatingHoursPerDay(feasibilityDefaults.operatingHoursPerDay);
+
+      if (feasibilityDefaults.customFields) {
+        const initialCustomValues: Record<string, number> = {};
+        feasibilityDefaults.customFields.forEach(f => {
+          if (f.isCustom) {
+            initialCustomValues[f.id] = f.defaultValue;
+          }
+        });
+        setCustomFieldsValues(initialCustomValues);
+      }
     }
   }, [feasibilityDefaults]);
+
+  // Dynamic Custom Feasibility Fields state
+  const [customFieldsValues, setCustomFieldsValues] = useState<Record<string, number>>({});
+
+  // Helper lookup functions for dynamic labels & visibility
+  const getFieldInfo = (key: string) => {
+    return feasibilityDefaults?.customFields?.find(f => f.key === key);
+  };
+  const getFieldLabel = (key: string, fallback: string) => {
+    const f = getFieldInfo(key);
+    return f ? f.label : fallback;
+  };
+  const getFieldSubLabel = (key: string, fallback?: string) => {
+    const f = getFieldInfo(key);
+    return f?.subLabel || fallback || '';
+  };
+  const isFieldVisible = (key: string) => {
+    const f = getFieldInfo(key);
+    return f ? f.isVisible : true;
+  };
 
   // Active Session Resolution
   const selectedSession = useMemo(() => {
@@ -125,13 +155,7 @@ export const CngFeasibilityAnalytics: React.FC<CngFeasibilityAnalyticsProps> = (
 
   // Aggregate or session counts
   const activeCounts: Record<VehicleType, number> = useMemo(() => {
-    const counts: Record<VehicleType, number> = {
-      private: 0,
-      microbus: 0,
-      taxi: 0,
-      suzuki_van: 0,
-      peugeot_station: 0,
-    };
+    const counts: Record<VehicleType, number> = createDefaultVehicleCounts();
 
     if (selectedSession) {
       (Object.keys(counts) as VehicleType[]).forEach((type) => {
@@ -178,11 +202,15 @@ export const CngFeasibilityAnalytics: React.FC<CngFeasibilityAnalyticsProps> = (
 
   // Station Traffic & Sizing: Daily Gas Dispensed
   // Weighted avg m3 per vehicle type:
-  // Private = 12 m3, Taxi = 16 m3, Microbus = 26 m3, Suzuki Van = 15 m3, Peugeot = 24 m3
   const avgM3PerType: Record<VehicleType, number> = {
     private: 12,
-    microbus: 26,
     taxi: 16,
+    microbus: 26,
+    van: 15,
+    minibus: 28,
+    pickup: 20,
+    bus: 55,
+    motorcycle: 5,
     suzuki_van: 15,
     peugeot_station: 24,
   };
@@ -206,21 +234,38 @@ export const CngFeasibilityAnalytics: React.FC<CngFeasibilityAnalyticsProps> = (
   const recommendedCompressors = dailyGasDispensedM3 > 12000 ? 3 : 2;
   const recommendedCompressorCapacity = Math.round((dailyGasDispensedM3 / operatingHoursPerDay) * 1.35); // with 35% peak factor
 
+  // Dynamic Custom CAPEX and OPEX totals
+  const customCapexTotal = useMemo(() => {
+    if (!feasibilityDefaults?.customFields) return 0;
+    return feasibilityDefaults.customFields
+      .filter(f => f.isCustom && f.category === 'capex' && f.isVisible)
+      .reduce((sum, f) => sum + (customFieldsValues[f.id] ?? f.defaultValue), 0);
+  }, [feasibilityDefaults, customFieldsValues]);
+
+  const customOpexTotal = useMemo(() => {
+    if (!feasibilityDefaults?.customFields) return 0;
+    return feasibilityDefaults.customFields
+      .filter(f => f.isCustom && f.category === 'opex' && f.isVisible)
+      .reduce((sum, f) => sum + (customFieldsValues[f.id] ?? f.defaultValue), 0);
+  }, [feasibilityDefaults, customFieldsValues]);
+
   // CAPEX & OPEX Totals
   const totalCapexEgp = 
-    capexCompressors + 
-    capexCascades + 
-    capexDispensers + 
-    capexGasPipeline + 
-    capexCivilAndCanopy + 
-    capexConversionCenter + 
-    capexPermitsAndSafety;
+    (isFieldVisible('capexCompressors') ? capexCompressors : 0) + 
+    (isFieldVisible('capexCascades') ? capexCascades : 0) + 
+    (isFieldVisible('capexDispensers') ? capexDispensers : 0) + 
+    (isFieldVisible('capexGasPipeline') ? capexGasPipeline : 0) + 
+    (isFieldVisible('capexCivilAndCanopy') ? capexCivilAndCanopy : 0) + 
+    (isFieldVisible('capexConversionCenter') ? capexConversionCenter : 0) + 
+    (isFieldVisible('capexPermitsAndSafety') ? capexPermitsAndSafety : 0) +
+    customCapexTotal;
 
   const annualOpexEgp = 
-    opexElectricity + 
-    opexMaintenance + 
-    opexLabor + 
-    opexInsuranceAndAdmin;
+    (isFieldVisible('opexElectricityAnnual') ? opexElectricity : 0) + 
+    (isFieldVisible('opexMaintenanceAnnual') ? opexMaintenance : 0) + 
+    (isFieldVisible('opexLaborAnnual') ? opexLabor : 0) + 
+    (isFieldVisible('opexInsuranceAndAdmin') ? opexInsuranceAndAdmin : 0) +
+    customOpexTotal;
 
   // Revenues & Margins
   const annualGasGrossProfit = annualGasDispensedM3 * cngProfitMargin;
@@ -817,83 +862,122 @@ export const CngFeasibilityAnalytics: React.FC<CngFeasibilityAnalyticsProps> = (
               </div>
 
               <div className="space-y-3 text-xs">
-                <div>
-                  <label className="block text-slate-300 mb-1">
-                    محطة الضواغط ومجففات الغاز عالي الضغط (جنيه)
-                  </label>
-                  <input
-                    type="number"
-                    step="100000"
-                    value={capexCompressors}
-                    onChange={(e) => setCapexCompressors(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
+                {isFieldVisible('capexCompressors') && (
+                  <div>
+                    <label className="block text-slate-300 mb-1">
+                      {getFieldLabel('capexCompressors', 'محطة الضواغط ومجففات الغاز عالي الضغط (جنيه)')}
+                    </label>
+                    <input
+                      type="number"
+                      step="100000"
+                      value={capexCompressors}
+                      onChange={(e) => setCapexCompressors(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                )}
 
-                <div>
-                  <label className="block text-slate-300 mb-1">
-                    خزانات التخزين الأسطواني البنكي (Cascades)
-                  </label>
-                  <input
-                    type="number"
-                    step="100000"
-                    value={capexCascades}
-                    onChange={(e) => setCapexCascades(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
+                {isFieldVisible('capexCascades') && (
+                  <div>
+                    <label className="block text-slate-300 mb-1">
+                      {getFieldLabel('capexCascades', 'خزانات التخزين الأسطواني البنكي (Cascades)')}
+                    </label>
+                    <input
+                      type="number"
+                      step="100000"
+                      value={capexCascades}
+                      onChange={(e) => setCapexCascades(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                )}
 
-                <div>
-                  <label className="block text-slate-300 mb-1">
-                    موزعات الغاز السريعة ونقاط البيع (Dispensers & POS)
-                  </label>
-                  <input
-                    type="number"
-                    step="50000"
-                    value={capexDispensers}
-                    onChange={(e) => setCapexDispensers(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
+                {isFieldVisible('capexDispensers') && (
+                  <div>
+                    <label className="block text-slate-300 mb-1">
+                      {getFieldLabel('capexDispensers', 'موزعات الغاز السريعة ونقاط البيع (Dispensers & POS)')}
+                    </label>
+                    <input
+                      type="number"
+                      step="50000"
+                      value={capexDispensers}
+                      onChange={(e) => setCapexDispensers(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                )}
 
-                <div>
-                  <label className="block text-slate-300 mb-1">
-                    خط التغذية والربط بشبكة الغاز الطبيعي (Gas Pipeline Connection)
-                  </label>
-                  <input
-                    type="number"
-                    step="100000"
-                    value={capexGasPipeline}
-                    onChange={(e) => setCapexGasPipeline(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
+                {isFieldVisible('capexGasPipeline') && (
+                  <div>
+                    <label className="block text-slate-300 mb-1">
+                      {getFieldLabel('capexGasPipeline', 'خط التغذية والربط بشبكة الغاز الطبيعي (Gas Pipeline Connection)')}
+                    </label>
+                    <input
+                      type="number"
+                      step="100000"
+                      value={capexGasPipeline}
+                      onChange={(e) => setCapexGasPipeline(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                )}
 
-                <div>
-                  <label className="block text-slate-300 mb-1">
-                    الأعمال المدنية والمظلات والمباني الإدارية والكهرباء
-                  </label>
-                  <input
-                    type="number"
-                    step="100000"
-                    value={capexCivilAndCanopy}
-                    onChange={(e) => setCapexCivilAndCanopy(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
+                {isFieldVisible('capexCivilAndCanopy') && (
+                  <div>
+                    <label className="block text-slate-300 mb-1">
+                      {getFieldLabel('capexCivilAndCanopy', 'الأعمال المدنية والمظلات والمباني الإدارية والكهرباء')}
+                    </label>
+                    <input
+                      type="number"
+                      step="100000"
+                      value={capexCivilAndCanopy}
+                      onChange={(e) => setCapexCivilAndCanopy(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                )}
 
-                <div>
-                  <label className="block text-slate-300 mb-1">
-                    تجهيزات ورشة ومركز تحويل السيارات الملحق
-                  </label>
-                  <input
-                    type="number"
-                    step="50000"
-                    value={capexConversionCenter}
-                    onChange={(e) => setCapexConversionCenter(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
+                {isFieldVisible('capexConversionCenter') && (
+                  <div>
+                    <label className="block text-slate-300 mb-1">
+                      {getFieldLabel('capexConversionCenter', 'تجهيزات ورشة ومركز تحويل السيارات الملحق')}
+                    </label>
+                    <input
+                      type="number"
+                      step="50000"
+                      value={capexConversionCenter}
+                      onChange={(e) => setCapexConversionCenter(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                )}
+
+                {/* User-defined Custom CapEx Fields */}
+                {feasibilityDefaults?.customFields
+                  ?.filter(f => f.isCustom && f.category === 'capex' && f.isVisible)
+                  .map(customField => (
+                    <div key={customField.id} className="p-2.5 rounded-xl bg-slate-950/60 border border-blue-500/30">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-blue-300 font-bold">
+                          {customField.label} ({customField.unit})
+                        </label>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">بند مخصص</span>
+                      </div>
+                      {customField.subLabel && (
+                        <p className="text-[10px] text-slate-400 mb-1">{customField.subLabel}</p>
+                      )}
+                      <input
+                        type="number"
+                        step="10000"
+                        value={customFieldsValues[customField.id] ?? customField.defaultValue}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          setCustomFieldsValues(prev => ({ ...prev, [customField.id]: val }));
+                        }}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-blue-500/40 text-white font-mono focus:border-blue-400 focus:outline-none"
+                      />
+                    </div>
+                  ))}
               </div>
             </div>
 
@@ -910,57 +994,92 @@ export const CngFeasibilityAnalytics: React.FC<CngFeasibilityAnalyticsProps> = (
               </div>
 
               <div className="space-y-3 text-xs">
-                <div>
-                  <label className="block text-slate-300 mb-1">
-                    فاتورة استهلاك الكهرباء للضواغط السنوية (جنيه/سنة)
-                  </label>
-                  <input
-                    type="number"
-                    step="50000"
-                    value={opexElectricity}
-                    onChange={(e) => setOpexElectricity(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
+                {isFieldVisible('opexElectricityAnnual') && (
+                  <div>
+                    <label className="block text-slate-300 mb-1">
+                      {getFieldLabel('opexElectricityAnnual', 'فاتورة استهلاك الكهرباء للضواغط السنوية (جنيه/سنة)')}
+                    </label>
+                    <input
+                      type="number"
+                      step="50000"
+                      value={opexElectricity}
+                      onChange={(e) => setOpexElectricity(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                )}
 
-                <div>
-                  <label className="block text-slate-300 mb-1">
-                    عقود الصيانة الدورية للضواغط والموزعات وقطع الغيار
-                  </label>
-                  <input
-                    type="number"
-                    step="50000"
-                    value={opexMaintenance}
-                    onChange={(e) => setOpexMaintenance(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
+                {isFieldVisible('opexMaintenanceAnnual') && (
+                  <div>
+                    <label className="block text-slate-300 mb-1">
+                      {getFieldLabel('opexMaintenanceAnnual', 'عقود الصيانة الدورية للضواغط والموزعات وقطع الغيار')}
+                    </label>
+                    <input
+                      type="number"
+                      step="50000"
+                      value={opexMaintenance}
+                      onChange={(e) => setOpexMaintenance(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                )}
 
-                <div>
-                  <label className="block text-slate-300 mb-1">
-                    أجور ورواتب المهندسين والفنيين والعمال والمحاسبين
-                  </label>
-                  <input
-                    type="number"
-                    step="50000"
-                    value={opexLabor}
-                    onChange={(e) => setOpexLabor(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
+                {isFieldVisible('opexLaborAnnual') && (
+                  <div>
+                    <label className="block text-slate-300 mb-1">
+                      {getFieldLabel('opexLaborAnnual', 'أجور ورواتب المهندسين والفنيين والعمال والمحاسبين')}
+                    </label>
+                    <input
+                      type="number"
+                      step="50000"
+                      value={opexLabor}
+                      onChange={(e) => setOpexLabor(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                )}
 
-                <div>
-                  <label className="block text-slate-300 mb-1">
-                    وثائق التأمين والتراخيص والمصاريف الإدارية والعمومية
-                  </label>
-                  <input
-                    type="number"
-                    step="25000"
-                    value={opexInsuranceAndAdmin}
-                    onChange={(e) => setOpexInsuranceAndAdmin(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
+                {isFieldVisible('opexInsuranceAndAdmin') && (
+                  <div>
+                    <label className="block text-slate-300 mb-1">
+                      {getFieldLabel('opexInsuranceAndAdmin', 'وثائق التأمين والتراخيص والمصاريف الإدارية والعمومية')}
+                    </label>
+                    <input
+                      type="number"
+                      step="25000"
+                      value={opexInsuranceAndAdmin}
+                      onChange={(e) => setOpexInsuranceAndAdmin(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                )}
+
+                {/* Dynamic custom opex fields */}
+                {feasibilityDefaults?.customFields
+                  ?.filter(f => f.isCustom && f.category === 'opex' && f.isVisible)
+                  .map(customField => (
+                    <div key={customField.id} className="p-2.5 rounded-xl bg-slate-950/60 border border-amber-500/30">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-amber-300 font-bold">
+                          {customField.label} ({customField.unit})
+                        </label>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">بند مخصص</span>
+                      </div>
+                      {customField.subLabel && (
+                        <p className="text-[10px] text-slate-400 mb-1">{customField.subLabel}</p>
+                      )}
+                      <input
+                        type="number"
+                        step="10000"
+                        value={customFieldsValues[customField.id] ?? customField.defaultValue}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          setCustomFieldsValues(prev => ({ ...prev, [customField.id]: val }));
+                        }}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-amber-500/40 text-white font-mono focus:border-amber-400 focus:outline-none"
+                      />
+                    </div>
+                  ))}
 
                 <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-700 mt-6">
                   <div className="text-slate-300 text-xs font-semibold mb-2">
@@ -1149,8 +1268,13 @@ export const CngFeasibilityAnalytics: React.FC<CngFeasibilityAnalyticsProps> = (
                     
                     const consumptionMap: Record<VehicleType, number> = {
                       private: 8.5,
-                      microbus: 14.0,
                       taxi: 10.0,
+                      microbus: 14.0,
+                      van: 7.5,
+                      minibus: 16.0,
+                      pickup: 11.5,
+                      bus: 28.0,
+                      motorcycle: 3.5,
                       suzuki_van: 7.5,
                       peugeot_station: 12.5,
                     };

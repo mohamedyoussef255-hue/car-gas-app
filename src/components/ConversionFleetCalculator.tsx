@@ -104,6 +104,11 @@ export const ConversionFleetCalculator: React.FC<ConversionFleetCalculatorProps>
       private: 8.0,
       taxi: 9.5,
       microbus: 13.5,
+      van: 7.5,
+      minibus: 15.0,
+      pickup: 11.0,
+      bus: 26.0,
+      motorcycle: 3.5,
       suzuki_van: 7.5,
       peugeot_station: 11.0,
     };

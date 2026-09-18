@@ -10,14 +10,85 @@ import { AdminControlPanel } from './components/AdminControlPanel';
 import { DepartmentReviewsWorkflow } from './components/DepartmentReviewsWorkflow';
 import { StationExecutionTracker } from './components/StationExecutionTracker';
 import { NewSessionModal } from './components/NewSessionModal';
+import { DepartmentPortalLanding } from './components/DepartmentPortalLanding';
+import { DepartmentWorkspaceView } from './components/DepartmentWorkspaceView';
+import { MarketingSurveyDispatcherModal } from './components/MarketingSurveyDispatcherModal';
+import { RequestFormChangeModal } from './components/RequestFormChangeModal';
+import { LandownerSurveyApplicationModal } from './components/LandownerSurveyApplicationModal';
 import { CargasNgvLogo } from './components/CargasNgvLogo';
-import { MonitoringSession, CNGStation, PlatformMasterSettings, FuelPricing } from './types';
+import { MonitoringSession, CNGStation, PlatformMasterSettings, FuelPricing, DepartmentRole, CustomFormField, FormChangeRequest, LandownerApplication } from './types';
 import { INITIAL_SESSIONS, INITIAL_CNG_STATIONS } from './data/initialData';
 import { loadPlatformSettings, savePlatformSettings } from './data/defaultSettings';
+import { INITIAL_CUSTOM_FORM_FIELDS, INITIAL_FORM_CHANGE_REQUESTS, DEPARTMENTS_METADATA, DEPARTMENT_ROLE_SPECS } from './data/departmentCustomFields';
+import { DEFAULT_LANDOWNER_APPLICATIONS } from './data/defaultLandownerApplications';
+import { DepartmentTeamInviteModal } from './components/DepartmentTeamInviteModal';
 
 export default function App() {
+  // Check URL parameters for direct WhatsApp deep links
+  const [urlParams] = useState<URLSearchParams | null>(() => {
+    try {
+      return new URLSearchParams(window.location.search);
+    } catch {
+      return null;
+    }
+  });
+
+  const roleParam = urlParams?.get('role') as DepartmentRole | null;
+  const userTypeParam = (urlParams?.get('userType') as 'gm' | 'staff') || 'gm';
+  const userNameParam = urlParams?.get('userName') || null;
+  const isDirectLink = Boolean(roleParam && (roleParam === 'surveyor' || DEPARTMENTS_METADATA[roleParam]));
+
+  const [userType] = useState<'gm' | 'staff'>(userTypeParam);
+  const [userName] = useState<string | null>(userNameParam);
+
+  // Department Role State (Null shows the Landing Portal)
+  const [currentRole, setCurrentRole] = useState<DepartmentRole | null>(() => {
+    if (roleParam && (roleParam === 'surveyor' || DEPARTMENTS_METADATA[roleParam])) {
+      return roleParam;
+    }
+    
+    try {
+      const saved = localStorage.getItem('cng_department_role');
+      if (saved && (saved === 'surveyor' || DEPARTMENTS_METADATA[saved as DepartmentRole])) {
+        return saved as DepartmentRole;
+      }
+    } catch {}
+    return null;
+  });
+
+  // Admin Live Preview State (allows Super Admin to view the app as a specific GM before sending invite)
+  const [adminPreviewRole, setAdminPreviewRole] = useState<DepartmentRole | null>(null);
+
+  // Admin Control Panel sub-tab navigation (when jumping from preview to edit schema)
+  const [adminInitialTab, setAdminInitialTab] = useState<'pricing' | 'contacts' | 'form_builder' | 'queries' | 'datamgmt' | 'analytics' | 'feasibility' | 'technical' | 'historical' | 'invitations'>('pricing');
+  const [selectedFormBuilderDept, setSelectedFormBuilderDept] = useState<DepartmentRole>('operations');
+
+  // General Manager Team WhatsApp Invite Modal
+  const [isTeamInviteModalOpen, setIsTeamInviteModalOpen] = useState<boolean>(false);
+
+  // Effective Role (Preview overrides current role for UI isolation)
+  const effectiveRole = adminPreviewRole || currentRole;
+  const isAdminPreview = Boolean(adminPreviewRole);
+
   // Navigation active tab
-  const [activeTab, setActiveTab] = useState<ActiveTabType>('camera');
+  const [activeTab, setActiveTab] = useState<ActiveTabType>(() => {
+    if (roleParam && (roleParam === 'surveyor' || DEPARTMENTS_METADATA[roleParam])) {
+      return DEPARTMENT_ROLE_SPECS[roleParam]?.primaryTab || 'departments';
+    }
+    if (currentRole === 'surveyor') return 'camera';
+    if (currentRole && currentRole !== 'admin') return 'departments';
+    return 'camera';
+  });
+
+  // Strict Tab Authorization Guard: if effectiveRole is a department (not admin), activeTab is strictly within its allowedTabs
+  useEffect(() => {
+    if (effectiveRole && effectiveRole !== 'admin') {
+      const spec = DEPARTMENT_ROLE_SPECS[effectiveRole];
+      if (spec && !spec.allowedTabs.includes(activeTab)) {
+        setActiveTab(spec.primaryTab);
+      }
+    }
+  }, [effectiveRole, activeTab]);
 
   // Master Platform Settings (Fuel pricing, Feasibility defaults, Technical Guide items)
   const [settings, setSettings] = useState<PlatformMasterSettings>(() => loadPlatformSettings());
@@ -60,10 +131,40 @@ export default function App() {
   });
 
   // Stations List
-  const [stations] = useState<CNGStation[]>(INITIAL_CNG_STATIONS);
+  const [stations, setStations] = useState<CNGStation[]>(INITIAL_CNG_STATIONS);
 
-  // Modal State
+  // Custom Form Fields State
+  const [customFields, setCustomFields] = useState<CustomFormField[]>(() => {
+    try {
+      const saved = localStorage.getItem('cng_custom_fields_v1');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_CUSTOM_FORM_FIELDS;
+  });
+
+  // Form Change Requests State
+  const [changeRequests, setChangeRequests] = useState<FormChangeRequest[]>(() => {
+    try {
+      const saved = localStorage.getItem('cng_form_change_requests_v1');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_FORM_CHANGE_REQUESTS;
+  });
+
+  // Modal States
   const [isNewSessionModalOpen, setIsNewSessionModalOpen] = useState<boolean>(false);
+  const [isDispatcherModalOpen, setIsDispatcherModalOpen] = useState<boolean>(false);
+  const [isChangeRequestModalOpen, setIsChangeRequestModalOpen] = useState<boolean>(false);
+  const [isLandownerModalOpen, setIsLandownerModalOpen] = useState<boolean>(false);
+
+  // Landowner Site Inspection Applications State
+  const [landownerApps, setLandownerApps] = useState<LandownerApplication[]>(() => {
+    try {
+      const saved = localStorage.getItem('cng_landowner_apps_v1');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return DEFAULT_LANDOWNER_APPLICATIONS;
+  });
 
   // Mobile View Simulator State (for Map requirement: "لا تظهر بعد نشر التطبيق إلا على الموبايل")
   const [isMobilePreview, setIsMobilePreview] = useState<boolean>(false);
@@ -72,10 +173,34 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem('cng_platform_sessions_v1', JSON.stringify(sessions));
-    } catch {
-      // ignore
-    }
+    } catch {}
   }, [sessions]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cng_landowner_apps_v1', JSON.stringify(landownerApps));
+    } catch {}
+  }, [landownerApps]);
+
+  useEffect(() => {
+    if (currentRole) {
+      localStorage.setItem('cng_department_role', currentRole);
+    } else {
+      localStorage.removeItem('cng_department_role');
+    }
+  }, [currentRole]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cng_custom_fields_v1', JSON.stringify(customFields));
+    } catch {}
+  }, [customFields]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cng_form_change_requests_v1', JSON.stringify(changeRequests));
+    } catch {}
+  }, [changeRequests]);
 
   // Current active session object
   const activeSession = sessions.find(s => s.id === activeSessionId) || null;
@@ -87,7 +212,7 @@ export default function App() {
 
   const handleCompleteSession = (completedSession: MonitoringSession) => {
     setSessions(prev => prev.map(s => s.id === completedSession.id ? completedSession : s));
-    setActiveTab('sessions');
+    setActiveTab(currentRole === 'surveyor' ? 'camera' : 'sessions');
   };
 
   const handleStartSession = (newSession: MonitoringSession) => {
@@ -97,7 +222,6 @@ export default function App() {
   };
 
   const handleResumeSession = (session: MonitoringSession) => {
-    // Set status to active if completed/paused
     const resumed: MonitoringSession = {
       ...session,
       status: 'active',
@@ -115,10 +239,33 @@ export default function App() {
     }
   };
 
+  // If no role selected, render the Department Portal Landing
+  if (!currentRole) {
+    return (
+      <DepartmentPortalLanding
+        onSelectRole={(role) => {
+          setCurrentRole(role);
+          if (role === 'surveyor') {
+            setActiveTab('camera');
+          } else if (role !== 'admin') {
+            setActiveTab('departments');
+          } else {
+            setActiveTab('camera');
+          }
+        }}
+        onOpenMarketingDispatcher={() => setIsDispatcherModalOpen(true)}
+        onOpenFieldSurveyorDirect={() => {
+          setCurrentRole('surveyor');
+          setActiveTab('camera');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white">
       
-      {/* Platform Header */}
+      {/* Platform Header with Role Display and Switcher */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -126,6 +273,30 @@ export default function App() {
         onNewSession={() => setIsNewSessionModalOpen(true)}
         isMobilePreview={isMobilePreview}
         setIsMobilePreview={setIsMobilePreview}
+        currentRole={effectiveRole}
+        onSwitchDepartment={() => {
+          setAdminPreviewRole(null);
+          setCurrentRole(null);
+        }}
+        hotline={settings.general.hotline || '19544'}
+        isAdminPreview={isAdminPreview}
+        onExitPreview={() => {
+          setAdminPreviewRole(null);
+          setCurrentRole('admin');
+          setActiveTab('admin');
+        }}
+        onCustomizeDepartment={(dept) => {
+          setAdminPreviewRole(null);
+          setCurrentRole('admin');
+          setActiveTab('admin');
+          setAdminInitialTab('form_builder');
+          setSelectedFormBuilderDept(dept);
+        }}
+        onOpenTeamInvite={() => setIsTeamInviteModalOpen(true)}
+        onOpenLandownerApplications={() => setIsLandownerModalOpen(true)}
+        userType={userType}
+        userName={userName}
+        isDirectLink={isDirectLink}
       />
 
       {/* Main Content View Switcher */}
@@ -155,8 +326,7 @@ export default function App() {
           <MobileOnlyMap
             sessions={sessions}
             stations={stations}
-            isMobilePreview={isMobilePreview}
-            setIsMobilePreview={setIsMobilePreview}
+            onUpdateStations={setStations}
             onSelectSession={(session) => {
               setActiveSessionId(session.id);
               setActiveTab('sessions');
@@ -174,38 +344,70 @@ export default function App() {
           />
         )}
 
+        {/* Departments View: Role-Isolated Workspace OR Super Admin Comprehensive Review */}
         {activeTab === 'departments' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-4">
-            {/* Site selector if multiple sessions exist */}
-            {sessions.length > 1 && (
-              <div className="bg-slate-900/80 border border-slate-800 p-3 rounded-xl flex items-center justify-between gap-4">
-                <span className="text-xs font-semibold text-slate-300">اختر الموقع / الجلسة المطلوب مراجعتها من قِبل الإدارات:</span>
-                <select
-                  value={activeSession?.id || sessions[0].id}
-                  onChange={(e) => setActiveSessionId(e.target.value)}
-                  className="bg-slate-800 border border-slate-700 text-xs text-white px-3 py-1.5 rounded-lg focus:outline-none focus:border-blue-500"
-                >
-                  {sessions.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.code} - {s.title} ({s.locationName}، {s.governorate})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            {/* If Current User is Super Admin (and not in preview): Show Unified Multi-Department Review */}
+            {effectiveRole === 'admin' ? (
+              <>
+                {/* Site selector if multiple sessions exist */}
+                {sessions.length > 1 && (
+                  <div className="bg-slate-900/80 border border-slate-800 p-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                    <span className="text-xs font-semibold text-slate-300">اختر الموقع / الجلسة المطلوب العمل عليها:</span>
+                    <select
+                      value={activeSession?.id || sessions[0].id}
+                      onChange={(e) => setActiveSessionId(e.target.value)}
+                      className="bg-slate-800 border border-slate-700 text-xs text-white px-3 py-1.5 rounded-lg focus:outline-none focus:border-blue-500"
+                    >
+                      {sessions.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.code} - {s.title} ({s.locationName}، {s.governorate})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-            {activeSession ? (
-              <DepartmentReviewsWorkflow
-                session={activeSession}
-                onUpdateSession={handleUpdateSession}
-                onNavigateToFeasibility={() => setActiveTab('feasibility')}
-                onNavigateToAdmin={() => setActiveTab('admin')}
-                onNavigateToExecution={() => setActiveTab('execution')}
-              />
+                {activeSession ? (
+                  <DepartmentReviewsWorkflow
+                    session={activeSession}
+                    onUpdateSession={handleUpdateSession}
+                    onNavigateToFeasibility={() => setActiveTab('feasibility')}
+                    onNavigateToAdmin={() => setActiveTab('admin')}
+                    onNavigateToExecution={() => setActiveTab('execution')}
+                  />
+                ) : (
+                  <div className="p-8 text-center bg-slate-900 border border-slate-800 rounded-2xl">
+                    <p className="text-slate-400 text-sm">يرجى بدء جلسة رصد أولاً أو اختيار موقع من السجل لمراجعته.</p>
+                  </div>
+                )}
+              </>
             ) : (
-              <div className="p-8 text-center bg-slate-900 border border-slate-800 rounded-2xl">
-                <p className="text-slate-400 text-sm">يرجى بدء جلسة رصد أولاً أو اختيار موقع من السجل لمراجعته.</p>
-              </div>
+              /* If Current User is a specific Department or Super Admin in Live Preview: Show Isolated Department Workspace */
+              <DepartmentWorkspaceView
+                department={effectiveRole || 'operations'}
+                sessions={sessions}
+                activeSession={activeSession}
+                onSelectSession={(session) => setActiveSessionId(session.id)}
+                onUpdateSession={handleUpdateSession}
+                customFields={customFields}
+                onSubmitFormChangeRequest={(newReq) => setChangeRequests(prev => [newReq, ...prev])}
+                onNavigateToAdmin={() => {
+                  setAdminPreviewRole(null);
+                  setCurrentRole('admin');
+                  setActiveTab('admin');
+                }}
+                onSwitchDepartment={() => {
+                  if (isAdminPreview) {
+                    setAdminPreviewRole(null);
+                    setCurrentRole('admin');
+                    setActiveTab('admin');
+                  } else {
+                    setCurrentRole(null);
+                  }
+                }}
+                onOpenLandownerApplications={() => setIsLandownerModalOpen(true)}
+              />
             )}
           </div>
         )}
@@ -288,6 +490,17 @@ export default function App() {
               setActiveSessionId(session.id);
               setActiveTab('sessions');
             }}
+            customFields={customFields}
+            onUpdateFields={setCustomFields}
+            changeRequests={changeRequests}
+            onUpdateChangeRequests={setChangeRequests}
+            onPreviewDepartment={(dept) => {
+              setAdminPreviewRole(dept);
+              const targetSpec = DEPARTMENT_ROLE_SPECS[dept];
+              setActiveTab(targetSpec?.primaryTab || 'departments');
+            }}
+            initialTab={adminInitialTab}
+            selectedFormBuilderDept={selectedFormBuilderDept}
           />
         )}
       </main>
@@ -299,6 +512,45 @@ export default function App() {
         onStartSession={handleStartSession}
       />
 
+      {/* Marketing Survey Dispatcher Modal */}
+      <MarketingSurveyDispatcherModal
+        isOpen={isDispatcherModalOpen}
+        onClose={() => setIsDispatcherModalOpen(false)}
+      />
+
+      {/* General Manager WhatsApp Team Invite Modal */}
+      {effectiveRole && effectiveRole !== 'admin' && (
+        <DepartmentTeamInviteModal
+          isOpen={isTeamInviteModalOpen}
+          onClose={() => setIsTeamInviteModalOpen(false)}
+          department={effectiveRole}
+        />
+      )}
+
+      {/* Request Form Change Modal (Sent to Super Admin) */}
+      <RequestFormChangeModal
+        isOpen={isChangeRequestModalOpen}
+        onClose={() => setIsChangeRequestModalOpen(false)}
+        department={currentRole || 'operations'}
+        onSubmitRequest={(newReq) => setChangeRequests(prev => [newReq, ...prev])}
+      />
+
+      {/* Landowner Survey Inspection Request Form & Applications Modal */}
+      <LandownerSurveyApplicationModal
+        isOpen={isLandownerModalOpen}
+        onClose={() => setIsLandownerModalOpen(false)}
+        applications={landownerApps}
+        onAddApplication={(newApp) => setLandownerApps(prev => [newApp, ...prev])}
+        onUpdateApplicationStatus={(id, status, score) => {
+          setLandownerApps(prev => prev.map(a => a.id === id ? { ...a, status, marketingEvaluationScore: score ?? a.marketingEvaluationScore } : a));
+        }}
+        onDispatchSurveyor={(app) => {
+          setIsLandownerModalOpen(false);
+          setIsDispatcherModalOpen(true);
+        }}
+        currentRole={effectiveRole || 'marketing'}
+      />
+
       {/* Footer / System status */}
       <footer className="border-t border-slate-800/80 bg-slate-950/90 py-5 px-4 text-xs text-slate-400">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
@@ -306,7 +558,13 @@ export default function App() {
             <CargasNgvLogo size="sm" showText={true} subtitle="الشركة المصرية الدولية لتكنولوجيا الغاز • CARGAS" />
           </div>
           <div className="text-center md:text-left flex flex-col items-center md:items-end gap-1">
-            <span className="text-slate-300 font-medium">المنظومة الموحدة لرصد المركبات ودراسة جدوى محطات الغاز الطبيعي</span>
+            <div className="flex items-center gap-3 text-slate-300 font-medium">
+              <span>الخط الساخن: <strong className="font-mono text-emerald-400">{settings.general.hotline || '19544'}</strong></span>
+              <span>•</span>
+              <span>طوارئ الغاز: <strong className="font-mono text-rose-400">{settings.general.emergencyHotline || '129'}</strong></span>
+              <span>•</span>
+              <span>واتساب: <strong className="font-mono text-green-400">{settings.general.whatsappNumber || '+201019544000'}</strong></span>
+            </div>
             <span className="font-mono text-[11px] text-slate-500">
               فئات الرصد: ملاكي • أجرة ميكروباص • أجرة تاكسي • سوزوكي فان • بيجو ستيشن
             </span>
