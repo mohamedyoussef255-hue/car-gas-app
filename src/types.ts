@@ -236,6 +236,12 @@ export interface MonitoringSession {
   safetyZoning?: SafetyZoningRequirement[];
   // Station Construction & Execution Phase Data (الموقف التنفيذي الإنشائي للمحطة)
   executionData?: StationExecutionData;
+  // Department-specific documentation & video archive
+  departmentOrigin?: DepartmentRole;
+  documentationCategory?: 'traffic_census' | 'equipment_machinery' | 'land_civil' | 'safety_inspection' | 'technical_network' | 'licensing_legal';
+  recordedVideoUrl?: string;
+  videoDurationSeconds?: number;
+  sessionSnapshotThumbnails?: string[];
 }
 
 // Station Construction & Execution Phase
@@ -937,4 +943,64 @@ export interface DepartmentTeamMemberInvite {
   invitedBy: string;
   notes?: string;
 }
+
+// Super Admin Credentials
+export interface SuperAdminCredentials {
+  email: string;
+  password: string;
+  lastUpdated?: string;
+}
+
+// Department Access Password & GM credentials (managed by Super Admin)
+export interface DepartmentAccessCredentials {
+  department: DepartmentRole;
+  password: string;
+  gmTitle: string;
+  defaultGmName: string;
+  defaultGmPhone: string;
+  lastUpdated: string;
+}
+
+// Central Department Activity & Message Log Item
+export interface DepartmentActivityLogItem {
+  id: string;
+  department: DepartmentRole;
+  departmentName: string;
+  actorName: string;
+  actorRole: 'general_manager' | 'staff' | 'engineer' | 'super_admin';
+  actionType: 'login' | 'invite_sent' | 'message_sent' | 'task_assigned' | 'camera_session_saved' | 'form_updated' | 'video_recorded';
+  title: string;
+  details: string;
+  timestamp: string;
+  dateStr: string;
+  timeStr: string;
+  recipientName?: string;
+  recipientPhone?: string;
+  relatedSessionId?: string;
+  metadata?: Record<string, any>;
+}
+
+// Stored Video Recording in Central/Department Archive
+export interface RecordedVideoSession {
+  id: string;
+  sessionId: string;
+  sessionTitle: string;
+  department: DepartmentRole;
+  departmentName: string;
+  locationName: string;
+  governorate: string;
+  recordedBy: string;
+  recordedAt: string;
+  timestampDisplay: string;
+  durationSeconds: number;
+  category: 'traffic_census' | 'equipment_machinery' | 'land_civil' | 'safety_inspection' | 'technical_network' | 'licensing_legal';
+  categoryLabel: string;
+  videoUrl?: string;
+  thumbnailUrl: string;
+  notes?: string;
+  equipmentInspected?: string[];
+  findingsSummary?: string;
+  fileSizeBytes?: number;
+}
+
 

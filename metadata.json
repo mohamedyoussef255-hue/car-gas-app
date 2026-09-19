@@ -1,6 +1,6 @@
 {
-  "name": "منظومة كارجاس للغاز الطبيعي NGV",
-  "description": "منظومة كارجاس NGV: رصد المركبات، دراسة الجدوى الاقتصادية والهندسية، وإدارة المحطات",
+  "name": "منظومة أدارة مشروعات ومحطات كارجاس",
+  "description": "منظومة أدارة مشروعات ومحطات كارجاس: رصد وتوثيق الإدارات والمعدات والمحطات والجدوى الهندسية والاقتصادية",
   "requestFramePermissions": ["camera", "geolocation"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

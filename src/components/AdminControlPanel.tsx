@@ -58,6 +58,10 @@ import { AdminContactsManager } from './AdminContactsManager';
 import { AdminFeasibilityManager } from './AdminFeasibilityManager';
 import { AdminFuelsManager } from './AdminFuelsManager';
 import { AdminInvitationsManager } from './AdminInvitationsManager';
+import { AdminPasswordsManager } from './AdminPasswordsManager';
+import { AdminActivityLogsManager } from './AdminActivityLogsManager';
+import { VideoArchiveModal } from './VideoArchiveModal';
+import { Key, Film, History } from 'lucide-react';
 
 interface AdminControlPanelProps {
   settings: PlatformMasterSettings;
@@ -74,7 +78,7 @@ interface AdminControlPanelProps {
   changeRequests?: FormChangeRequest[];
   onUpdateChangeRequests?: (requests: FormChangeRequest[]) => void;
   onPreviewDepartment?: (dept: DepartmentRole) => void;
-  initialTab?: 'pricing' | 'contacts' | 'form_builder' | 'queries' | 'datamgmt' | 'analytics' | 'feasibility' | 'technical' | 'historical' | 'invitations';
+  initialTab?: 'pricing' | 'contacts' | 'form_builder' | 'queries' | 'datamgmt' | 'analytics' | 'feasibility' | 'technical' | 'historical' | 'invitations' | 'passwords' | 'activity_logs' | 'video_archive';
   selectedFormBuilderDept?: DepartmentRole;
 }
 
@@ -97,7 +101,7 @@ export const AdminControlPanel: React.FC<AdminControlPanelProps> = ({
   selectedFormBuilderDept,
 }) => {
   // Active Panel Tab
-  const [activeTab, setActiveTab] = useState<'pricing' | 'contacts' | 'form_builder' | 'queries' | 'datamgmt' | 'analytics' | 'feasibility' | 'technical' | 'historical' | 'invitations'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'pricing' | 'contacts' | 'form_builder' | 'queries' | 'datamgmt' | 'analytics' | 'feasibility' | 'technical' | 'historical' | 'invitations' | 'passwords' | 'activity_logs' | 'video_archive'>(initialTab);
   const [currentFormBuilderDept, setCurrentFormBuilderDept] = useState<DepartmentRole>(selectedFormBuilderDept || 'operations');
 
   // Local draft states for easy editing and saving
@@ -564,6 +568,55 @@ export const AdminControlPanel: React.FC<AdminControlPanelProps> = ({
 
         {/* Tab Navigation Navigation Bar */}
         <div className="flex flex-wrap items-center gap-2 mt-6 pt-4 border-t border-slate-700/80">
+          
+          {/* Central Passwords & Direct Auth Tab */}
+          <button
+            id="tab-passwords"
+            onClick={() => setActiveTab('passwords')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+              activeTab === 'passwords'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-2 ring-emerald-400/40'
+                : 'bg-slate-900/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/80'
+            }`}
+          >
+            <Key className="w-4 h-4 text-emerald-400" />
+            <span>كلمات سر الإدارات ومدير النظام</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono font-bold">
+              000000
+            </span>
+          </button>
+
+          {/* Activity Logs Tab */}
+          <button
+            id="tab-activity-logs"
+            onClick={() => setActiveTab('activity_logs')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+              activeTab === 'activity_logs'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+                : 'bg-slate-900/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/80'
+            }`}
+          >
+            <History className="w-4 h-4 text-sky-400" />
+            <span>سجل أنشطة وتكليفات الإدارات</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30 font-bold">
+              باليوم والتاريخ
+            </span>
+          </button>
+
+          {/* Video & Camera Archive Tab */}
+          <button
+            id="tab-video-archive"
+            onClick={() => setActiveTab('video_archive')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+              activeTab === 'video_archive'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+                : 'bg-slate-900/80 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/80'
+            }`}
+          >
+            <Film className="w-4 h-4 text-indigo-400" />
+            <span>مخزن وفيديوهات الرصد الميداني</span>
+          </button>
+
           <button
             id="tab-pricing"
             onClick={() => setActiveTab('pricing')}
@@ -713,6 +766,31 @@ export const AdminControlPanel: React.FC<AdminControlPanelProps> = ({
           </button>
         </div>
       </div>
+
+      {/* ============================================================== */}
+      {/* TAB: PASSWORDS & ACCESS CONTROL (SUPER ADMIN & DEPARTMENTS)   */}
+      {/* ============================================================== */}
+      {activeTab === 'passwords' && (
+        <AdminPasswordsManager />
+      )}
+
+      {/* ============================================================== */}
+      {/* TAB: ACTIVITY LOGS BY DAY, DATE & TIME                         */}
+      {/* ============================================================== */}
+      {activeTab === 'activity_logs' && (
+        <AdminActivityLogsManager />
+      )}
+
+      {/* ============================================================== */}
+      {/* TAB: VIDEO & CAMERA RECORDINGS ARCHIVE                        */}
+      {/* ============================================================== */}
+      {activeTab === 'video_archive' && (
+        <VideoArchiveModal
+          isOpen={true}
+          onClose={() => setActiveTab('pricing')}
+          isEmbedded={true}
+        />
+      )}
 
       {/* ============================================================== */}
       {/* TAB: CONTACTS & HOTLINE 19544 MANAGEMENT                      */}

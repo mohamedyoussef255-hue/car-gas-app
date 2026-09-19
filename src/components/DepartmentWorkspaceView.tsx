@@ -26,18 +26,26 @@ import {
   ChevronRight,
   RefreshCw,
   FolderOpen,
-  Users
+  Users,
+  Camera,
+  Film,
+  History,
+  Calendar
 } from 'lucide-react';
 import { 
   DepartmentRole, 
   MonitoringSession, 
   CustomFormField, 
-  FormChangeRequest 
+  FormChangeRequest,
+  DepartmentActivityLogItem
 } from '../types';
 import { DEPARTMENTS_METADATA } from '../data/departmentCustomFields';
 import { RequestFormChangeModal } from './RequestFormChangeModal';
 import { MarketingSurveyDispatcherModal } from './MarketingSurveyDispatcherModal';
 import { DepartmentTeamInviteModal } from './DepartmentTeamInviteModal';
+import { DepartmentDedicatedCameraModal } from './DepartmentDedicatedCameraModal';
+import { VideoArchiveModal } from './VideoArchiveModal';
+import { loadActivityLogs } from '../data/authCredentials';
 
 interface DepartmentWorkspaceViewProps {
   department: DepartmentRole;
@@ -72,6 +80,9 @@ export const DepartmentWorkspaceView: React.FC<DepartmentWorkspaceViewProps> = (
   const [isRequestModalOpen, setIsRequestModalOpen] = useState<boolean>(false);
   const [isMarketingModalOpen, setIsMarketingModalOpen] = useState<boolean>(false);
   const [isTeamInviteModalOpen, setIsTeamInviteModalOpen] = useState<boolean>(false);
+  const [isDedicatedCameraOpen, setIsDedicatedCameraOpen] = useState<boolean>(false);
+  const [isVideoArchiveOpen, setIsVideoArchiveOpen] = useState<boolean>(false);
+  const [showActivityLogs, setShowActivityLogs] = useState<boolean>(false);
   const [isSavedNotice, setIsSavedNotice] = useState<boolean>(false);
 
   // Form field values stored locally or loaded from session
@@ -148,16 +159,46 @@ export const DepartmentWorkspaceView: React.FC<DepartmentWorkspaceViewProps> = (
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
-          {isMarketing && (
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
+          
+          {/* Monitoring Camera Button (Strictly restricted to Marketing Department) */}
+          {department === 'marketing' && (
             <button
-              onClick={() => setIsMarketingModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20 cursor-pointer"
+              id="btn-dept-camera"
+              onClick={() => setIsDedicatedCameraOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/20 cursor-pointer"
+              title="فتح كاميرا الرصد الميداني وحصر السيارات لإدارة التسويق والدراسات"
             >
-              <Share2 className="w-4 h-4" />
-              <span>إرسال رابط المعاينة بالواتساب</span>
+              <Camera className="w-4 h-4" />
+              <span>كاميرا الرصد الميداني وحصر السيارات</span>
             </button>
           )}
+
+          {/* Department Video Archive Storage */}
+          <button
+            id="btn-dept-video-archive"
+            onClick={() => setIsVideoArchiveOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20 cursor-pointer"
+            title="مخزن وفيديوهات الرصد الخاصة بالإدارة والمنظومة"
+          >
+            <Film className="w-4 h-4" />
+            <span>مخزن الفيديوهات الموثقة</span>
+          </button>
+
+          {/* Department Activity Logs */}
+          <button
+            id="btn-dept-activity-logs"
+            onClick={() => setShowActivityLogs(!showActivityLogs)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+              showActivityLogs
+                ? 'bg-sky-600 text-white border-sky-500 shadow-md shadow-sky-600/20'
+                : 'bg-slate-800 hover:bg-slate-700 text-sky-300 border-sky-500/30'
+            }`}
+            title="سجل نشاط وتكليفات الإدارة باليوم والتاريخ"
+          >
+            <History className="w-4 h-4" />
+            <span>سجل نشاط الإدارة</span>
+          </button>
 
           {/* Landowner Survey Applications Button */}
           {onOpenLandownerApplications && (
@@ -174,11 +215,11 @@ export const DepartmentWorkspaceView: React.FC<DepartmentWorkspaceViewProps> = (
           {/* Team Invite WhatsApp Button */}
           <button
             onClick={() => setIsTeamInviteModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/20 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 text-xs font-bold border border-emerald-500/30 transition-all cursor-pointer"
             title="إرسال رابط دعوة مخصص لمهندسي وموظفي الإدارة بالواتساب"
           >
-            <Users className="w-4 h-4" />
-            <span>دعوة موظفي ومهندسي الإدارة (واتساب)</span>
+            <Users className="w-4 h-4 text-emerald-400" />
+            <span>دعوة فريق الإدارة بالواتساب</span>
           </button>
 
           {/* Request Form Change Button */}
@@ -188,18 +229,66 @@ export const DepartmentWorkspaceView: React.FC<DepartmentWorkspaceViewProps> = (
             title="طلب تعديل حقول الاستمارة من مدير النظام"
           >
             <Lock className="w-3.5 h-3.5 text-amber-400" />
-            <span>مخاطبة مدير النظام لتعديل النموذج</span>
+            <span>مخاطبة مدير النظام</span>
           </button>
 
           {/* Switch Department / Logout */}
           <button
             onClick={onSwitchDepartment}
-            className="flex items-center gap-1 px-3 py-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-xs font-medium border border-slate-700 transition-colors"
+            className="flex items-center gap-1 px-3 py-2 rounded-lg bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 text-xs font-medium border border-rose-500/30 transition-colors"
           >
-            <span>تبديل الإدارة</span>
+            <span>خروج / تبديل الإدارة</span>
           </button>
         </div>
       </div>
+
+      {/* Expandable Department Activity Logs Section */}
+      {showActivityLogs && (
+        <div className="bg-slate-900/95 border border-sky-500/40 rounded-2xl p-5 shadow-xl space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <History className="w-5 h-5 text-sky-400" />
+              <h3 className="text-sm font-bold text-white">
+                سجل نشاط وتكليفات الإدارة الموثق باليوم والتاريخ
+              </h3>
+            </div>
+            <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/30 font-mono">
+              {department}
+            </span>
+          </div>
+
+          <div className="space-y-2 max-h-60 overflow-y-auto no-scrollbar pt-1">
+            {loadActivityLogs().filter(log => log.department === department).length === 0 ? (
+              <p className="text-xs text-slate-400 py-4 text-center">لا توجد سجلات مسجلة لهذه الإدارة بعد.</p>
+            ) : (
+              loadActivityLogs()
+                .filter(log => log.department === department)
+                .map((item) => (
+                  <div key={item.id} className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-white">{item.title}</span>
+                        {item.recipientName && (
+                          <span className="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                            المستلم: {item.recipientName}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">
+                          {item.actorName}
+                        </span>
+                      </div>
+                      <p className="text-slate-300 text-[11px]">{item.details}</p>
+                    </div>
+                    <div className="flex items-center gap-3 text-slate-400 text-[11px] shrink-0 font-mono">
+                      <span>{item.dateStr}</span>
+                      <span className="text-amber-400">{item.timeStr}</span>
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Site Selector */}
       {sessions.length > 0 && (
@@ -440,6 +529,21 @@ export const DepartmentWorkspaceView: React.FC<DepartmentWorkspaceViewProps> = (
         isOpen={isTeamInviteModalOpen}
         onClose={() => setIsTeamInviteModalOpen(false)}
         department={department}
+      />
+
+      {/* Department Dedicated Field Camera Modal */}
+      <DepartmentDedicatedCameraModal
+        isOpen={isDedicatedCameraOpen}
+        onClose={() => setIsDedicatedCameraOpen(false)}
+        department={department}
+        activeSession={activeSession}
+      />
+
+      {/* Video & Camera Recordings Archive Modal */}
+      <VideoArchiveModal
+        isOpen={isVideoArchiveOpen}
+        onClose={() => setIsVideoArchiveOpen(false)}
+        defaultDepartmentFilter={department}
       />
 
     </div>

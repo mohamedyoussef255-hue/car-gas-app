@@ -138,7 +138,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div>
               <div className="flex items-center gap-1.5">
                 <h1 className="text-xs sm:text-sm font-bold text-white tracking-tight flex items-center gap-1.5">
-                  <span>منظومة كارجاس للغاز الطبيعي</span>
+                  <span>منظومة أدارة مشروعات ومحطات كارجاس</span>
                   <span className="text-amber-400 font-mono font-bold text-[11px] sm:text-xs bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">NGV</span>
                 </h1>
                 
@@ -155,22 +155,6 @@ export const Header: React.FC<HeaderProps> = ({
               </p>
             </div>
           </div>
-
-          {/* Active Session Live Badge (if any) */}
-          {activeSession && (
-            <div className="hidden xl:flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/40 text-xs">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-              </span>
-              <span className="text-emerald-300 font-medium truncate max-w-[170px]">
-                الموقع: {activeSession.title}
-              </span>
-              <span className="text-slate-400 font-mono text-[11px]">
-                ({Object.values(activeSession.counts).reduce((a, b) => a + b, 0)} سيارة)
-              </span>
-            </div>
-          )}
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
@@ -227,18 +211,6 @@ export const Header: React.FC<HeaderProps> = ({
                 <LogOut className="w-3 h-3 text-slate-400" />
               </button>
             )}
-
-            {/* Start New Session (Visible only if allowed in tabs) */}
-            {allowedTabs.includes('camera') && (
-              <button
-                id="btn-header-new-session"
-                onClick={onNewSession}
-                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold transition-colors shadow-md shadow-emerald-600/20 cursor-pointer"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>جلسة رصد</span>
-              </button>
-            )}
           </div>
         </div>
 
@@ -277,25 +249,6 @@ export const Header: React.FC<HeaderProps> = ({
                     <span className="px-1.5 py-0.2 text-[10px] rounded bg-white/20 text-white font-mono">
                       الرئيسية
                     </span>
-                  )}
-                </button>
-              )}
-
-              {/* Tab: Camera (If allowed for this department e.g. Admin & Marketing) */}
-              {allowedTabs.includes('camera') && (
-                <button
-                  id="tab-camera"
-                  onClick={() => setActiveTab('camera')}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all cursor-pointer ${
-                    activeTab === 'camera'
-                      ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/30'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                  }`}
-                >
-                  <Camera className="w-4 h-4 text-emerald-400" />
-                  <span>كاميرا الرصد المباشر</span>
-                  {activeSession && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                   )}
                 </button>
               )}

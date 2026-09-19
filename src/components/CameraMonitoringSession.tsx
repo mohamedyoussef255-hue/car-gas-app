@@ -22,7 +22,9 @@ import {
   Plus,
   Navigation,
   Satellite,
-  Radio
+  Radio,
+  XCircle,
+  AlertTriangle
 } from 'lucide-react';
 import { MonitoringSession, VehicleType, VEHICLE_TYPES, DetectionRecord } from '../types';
 import { playVehicleBeep } from '../utils/audio';
@@ -33,6 +35,7 @@ interface CameraMonitoringSessionProps {
   onUpdateSession: (updatedSession: MonitoringSession) => void;
   onCompleteSession: (completedSession: MonitoringSession) => void;
   onStartNewSession: () => void;
+  onCancelSession?: () => void;
 }
 
 export const CameraMonitoringSession: React.FC<CameraMonitoringSessionProps> = ({
@@ -40,6 +43,7 @@ export const CameraMonitoringSession: React.FC<CameraMonitoringSessionProps> = (
   onUpdateSession,
   onCompleteSession,
   onStartNewSession,
+  onCancelSession,
 }) => {
   // Video and Stream States
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -50,6 +54,7 @@ export const CameraMonitoringSession: React.FC<CameraMonitoringSessionProps> = (
   const [hasTorch, setHasTorch] = useState<boolean>(false);
   const [isTorchOn, setIsTorchOn] = useState<boolean>(false);
   const [isSoundEnabled, setIsSoundEnabled] = useState<boolean>(true);
+  const [showCancelConfirm, setShowCancelConfirm] = useState<boolean>(false);
 
   // AI Automatic Recognition States
   const [isAiScanning, setIsAiScanning] = useState<boolean>(true);
@@ -571,8 +576,58 @@ export const CameraMonitoringSession: React.FC<CameraMonitoringSessionProps> = (
             <CheckCircle2 className="w-4 h-4" />
             <span>إنهاء وحفظ الجلسة</span>
           </button>
+
+          {/* Cancel Session */}
+          <button
+            id="btn-cancel-session"
+            onClick={() => setShowCancelConfirm(true)}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border border-slate-700 hover:border-rose-500/40 text-xs font-semibold transition-all cursor-pointer"
+          >
+            <XCircle className="w-4 h-4 text-rose-400" />
+            <span>إلغاء الجلسة</span>
+          </button>
         </div>
       </div>
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl space-y-4">
+            <div className="w-12 h-12 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h4 className="text-base font-bold text-white">إلغاء جلسة الرصد الميداني؟</h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              هل أنت متأكد من إلغاء جلسة الرصد الحالية؟ سيتم الخروج دون حفظ أي تغييرات أو بيانات رصد جديدة.
+            </p>
+            <div className="flex gap-2.5 pt-2">
+              <button
+                type="button"
+                id="btn-confirm-cancel-session"
+                onClick={() => {
+                  if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                  }
+                  setShowCancelConfirm(false);
+                  if (onCancelSession) {
+                    onCancelSession();
+                  }
+                }}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition-all cursor-pointer"
+              >
+                نعم، إلغاء الجلسة
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCancelConfirm(false)}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-all cursor-pointer"
+              >
+                تراجع واستمرار
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Automated Geocoding & Internet POI Banner */}
       <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs shadow-lg">

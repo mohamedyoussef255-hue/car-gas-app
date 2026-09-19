@@ -15,6 +15,8 @@ import { DepartmentWorkspaceView } from './components/DepartmentWorkspaceView';
 import { MarketingSurveyDispatcherModal } from './components/MarketingSurveyDispatcherModal';
 import { RequestFormChangeModal } from './components/RequestFormChangeModal';
 import { LandownerSurveyApplicationModal } from './components/LandownerSurveyApplicationModal';
+import { AdminLoginModal } from './components/AdminLoginModal';
+import { DepartmentLoginModal } from './components/DepartmentLoginModal';
 import { CargasNgvLogo } from './components/CargasNgvLogo';
 import { MonitoringSession, CNGStation, PlatformMasterSettings, FuelPricing, DepartmentRole, CustomFormField, FormChangeRequest, LandownerApplication } from './types';
 import { INITIAL_SESSIONS, INITIAL_CNG_STATIONS } from './data/initialData';
@@ -22,6 +24,14 @@ import { loadPlatformSettings, savePlatformSettings } from './data/defaultSettin
 import { INITIAL_CUSTOM_FORM_FIELDS, INITIAL_FORM_CHANGE_REQUESTS, DEPARTMENTS_METADATA, DEPARTMENT_ROLE_SPECS } from './data/departmentCustomFields';
 import { DEFAULT_LANDOWNER_APPLICATIONS } from './data/defaultLandownerApplications';
 import { DepartmentTeamInviteModal } from './components/DepartmentTeamInviteModal';
+import {
+  isAdminAuthenticated,
+  setAdminAuthenticated,
+  clearAdminAuth,
+  isDeptAuthenticated,
+  setDeptAuthenticated,
+  clearDeptAuth
+} from './data/authCredentials';
 
 export default function App() {
   // Check URL parameters for direct WhatsApp deep links
@@ -44,12 +54,25 @@ export default function App() {
   // Department Role State (Null shows the Landing Portal)
   const [currentRole, setCurrentRole] = useState<DepartmentRole | null>(() => {
     if (roleParam && (roleParam === 'surveyor' || DEPARTMENTS_METADATA[roleParam])) {
+      // If department or admin is passed, check if authenticated
+      if (roleParam === 'admin') {
+        return isAdminAuthenticated() ? 'admin' : null;
+      }
+      if (roleParam !== 'surveyor') {
+        return isDeptAuthenticated(roleParam) ? roleParam : null;
+      }
       return roleParam;
     }
     
     try {
       const saved = localStorage.getItem('cng_department_role');
       if (saved && (saved === 'surveyor' || DEPARTMENTS_METADATA[saved as DepartmentRole])) {
+        if (saved === 'admin') {
+          return isAdminAuthenticated() ? 'admin' : null;
+        }
+        if (saved !== 'surveyor') {
+          return isDeptAuthenticated(saved as DepartmentRole) ? (saved as DepartmentRole) : null;
+        }
         return saved as DepartmentRole;
       }
     } catch {}
@@ -58,6 +81,24 @@ export default function App() {
 
   // Admin Live Preview State (allows Super Admin to view the app as a specific GM before sending invite)
   const [adminPreviewRole, setAdminPreviewRole] = useState<DepartmentRole | null>(null);
+
+  // Super Admin login modal state
+  const [isAdminLoginModalOpen, setIsAdminLoginModalOpen] = useState<boolean>(() => {
+    if (roleParam === 'admin' && !isAdminAuthenticated()) {
+      return true;
+    }
+    return false;
+  });
+
+  // Department password login modal state (for direct deep links or landing selections)
+  const [deptLoginRole, setDeptLoginRole] = useState<DepartmentRole | null>(() => {
+    if (roleParam && roleParam !== 'admin' && roleParam !== 'surveyor') {
+      if (!isDeptAuthenticated(roleParam)) {
+        return roleParam;
+      }
+    }
+    return null;
+  });
 
   // Admin Control Panel sub-tab navigation (when jumping from preview to edit schema)
   const [adminInitialTab, setAdminInitialTab] = useState<'pricing' | 'contacts' | 'form_builder' | 'queries' | 'datamgmt' | 'analytics' | 'feasibility' | 'technical' | 'historical' | 'invitations'>('pricing');
@@ -239,26 +280,120 @@ export default function App() {
     }
   };
 
+  // If a direct department link was opened via WhatsApp and user is not yet authenticated, show ONLY that department's login screen!
+  if (roleParam && roleParam !== 'admin' && roleParam !== 'surveyor' && !isDeptAuthenticated(roleParam)) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
+        <DepartmentLoginModal
+          isOpen={true}
+          onClose={() => {
+            try {
+              window.history.replaceState({}, '', window.location.pathname);
+            } catch {}
+            setDeptLoginRole(null);
+          }}
+          department={roleParam}
+          onSuccess={() => {
+            setDeptAuthenticated(roleParam, true);
+            setCurrentRole(roleParam);
+            setActiveTab(DEPARTMENT_ROLE_SPECS[roleParam]?.primaryTab || 'departments');
+            setDeptLoginRole(null);
+          }}
+        />
+      </div>
+    );
+  }
+
+  // If a direct admin link was opened and user is not yet authenticated, show ONLY Super Admin login screen!
+  if (roleParam === 'admin' && !isAdminAuthenticated()) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
+        <AdminLoginModal
+          isOpen={true}
+          onClose={() => {
+            try {
+              window.history.replaceState({}, '', window.location.pathname);
+            } catch {}
+            setIsAdminLoginModalOpen(false);
+          }}
+          onSuccess={() => {
+            setAdminAuthenticated(true);
+            setCurrentRole('admin');
+            setActiveTab('admin');
+            setIsAdminLoginModalOpen(false);
+          }}
+        />
+      </div>
+    );
+  }
+
   // If no role selected, render the Department Portal Landing
   if (!currentRole) {
     return (
-      <DepartmentPortalLanding
-        onSelectRole={(role) => {
-          setCurrentRole(role);
-          if (role === 'surveyor') {
-            setActiveTab('camera');
-          } else if (role !== 'admin') {
-            setActiveTab('departments');
-          } else {
-            setActiveTab('camera');
-          }
-        }}
-        onOpenMarketingDispatcher={() => setIsDispatcherModalOpen(true)}
-        onOpenFieldSurveyorDirect={() => {
-          setCurrentRole('surveyor');
-          setActiveTab('camera');
-        }}
-      />
+      <>
+        <DepartmentPortalLanding
+          onSelectRole={(role) => {
+            if (role === 'admin') {
+              if (isAdminAuthenticated()) {
+                setCurrentRole('admin');
+                setActiveTab('admin');
+              } else {
+                setIsAdminLoginModalOpen(true);
+              }
+            } else {
+              if (isDeptAuthenticated(role)) {
+                setCurrentRole(role);
+                setActiveTab(DEPARTMENT_ROLE_SPECS[role]?.primaryTab || 'departments');
+              } else {
+                setDeptLoginRole(role);
+              }
+            }
+          }}
+          onOpenAdminLogin={() => {
+            if (isAdminAuthenticated()) {
+              setCurrentRole('admin');
+              setActiveTab('admin');
+            } else {
+              setIsAdminLoginModalOpen(true);
+            }
+          }}
+          onOpenDeptLogin={(role) => {
+            if (isDeptAuthenticated(role)) {
+              setCurrentRole(role);
+              setActiveTab(DEPARTMENT_ROLE_SPECS[role]?.primaryTab || 'departments');
+            } else {
+              setDeptLoginRole(role);
+            }
+          }}
+        />
+
+        {/* Super Admin Login Modal */}
+        <AdminLoginModal
+          isOpen={isAdminLoginModalOpen}
+          onClose={() => setIsAdminLoginModalOpen(false)}
+          onSuccess={() => {
+            setAdminAuthenticated(true);
+            setCurrentRole('admin');
+            setActiveTab('admin');
+            setIsAdminLoginModalOpen(false);
+          }}
+        />
+
+        {/* Department Password Login Modal */}
+        {deptLoginRole && (
+          <DepartmentLoginModal
+            isOpen={true}
+            onClose={() => setDeptLoginRole(null)}
+            department={deptLoginRole}
+            onSuccess={() => {
+              setDeptAuthenticated(deptLoginRole, true);
+              setCurrentRole(deptLoginRole);
+              setActiveTab(DEPARTMENT_ROLE_SPECS[deptLoginRole]?.primaryTab || 'departments');
+              setDeptLoginRole(null);
+            }}
+          />
+        )}
+      </>
     );
   }
 
@@ -276,7 +411,13 @@ export default function App() {
         currentRole={effectiveRole}
         onSwitchDepartment={() => {
           setAdminPreviewRole(null);
+          if (currentRole === 'admin') {
+            clearAdminAuth();
+          } else if (currentRole) {
+            clearDeptAuth(currentRole);
+          }
           setCurrentRole(null);
+          localStorage.removeItem('cng_department_role');
         }}
         hotline={settings.general.hotline || '19544'}
         isAdminPreview={isAdminPreview}
@@ -307,6 +448,9 @@ export default function App() {
             onUpdateSession={handleUpdateSession}
             onCompleteSession={handleCompleteSession}
             onStartNewSession={() => setIsNewSessionModalOpen(true)}
+            onCancelSession={() => {
+              setActiveTab(effectiveRole === 'marketing' ? 'departments' : 'sessions');
+            }}
           />
         )}
 
